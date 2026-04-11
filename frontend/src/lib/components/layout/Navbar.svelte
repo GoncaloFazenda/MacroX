@@ -2,7 +2,7 @@
   import { page } from '$app/stores';
   import { auth } from '$lib/stores/auth.js';
   import { theme } from '$lib/stores/theme.js';
-  import { Sun, Moon, LogOut, Menu, X } from 'lucide-svelte';
+  import { Sun, Moon, Cloud, LogOut, Menu, X } from 'lucide-svelte';
 
   let mobileOpen = $state(false);
 
@@ -44,6 +44,8 @@
       <button class="btn btn-ghost btn-sm" onclick={() => theme.toggle()} aria-label="Toggle theme">
         {#if $theme === 'dark'}
           <Sun size={16} strokeWidth={1.5} />
+        {:else if $theme === 'light'}
+          <Cloud size={16} strokeWidth={1.5} />
         {:else}
           <Moon size={16} strokeWidth={1.5} />
         {/if}
@@ -140,7 +142,7 @@
       top: var(--navbar-height);
       left: 0;
       right: 0;
-      background: var(--bg-1);
+      background: var(--bg-modal);
       border-bottom: 1px solid var(--border);
       flex-direction: column;
       padding: var(--space-3);

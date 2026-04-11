@@ -1,6 +1,8 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
+const THEMES = ['dark', 'light', 'stone'];
+
 function createThemeStore() {
   const initial = browser ? (localStorage.getItem('macrox-theme') || 'dark') : 'dark';
   const { subscribe, set } = writable(initial);
@@ -11,7 +13,8 @@ function createThemeStore() {
     toggle() {
       let newTheme;
       subscribe((current) => {
-        newTheme = current === 'dark' ? 'light' : 'dark';
+        const idx = THEMES.indexOf(current);
+        newTheme = THEMES[(idx + 1) % THEMES.length];
       })();
       set(newTheme);
       if (browser) {

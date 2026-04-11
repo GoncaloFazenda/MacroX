@@ -163,8 +163,8 @@
   .search-row { position: relative; margin-bottom: var(--space-5); }
   .search-dropdown {
     position: absolute; top: 100%; left: 0; max-width: 320px; width: 100%; margin-top: var(--space-1);
-    background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-md);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 10; max-height: 250px; overflow-y: auto;
+    background: var(--bg-modal); border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+    z-index: 10; max-height: 250px; overflow-y: auto;
   }
   .sd-item { display: flex; align-items: center; gap: var(--space-2); padding: 4px 8px; border-bottom: 1px solid var(--border); }
   .sd-item:last-child { border-bottom: none; }

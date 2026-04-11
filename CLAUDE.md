@@ -95,7 +95,7 @@ macrox/
 
 ## Design System
 - **Aesthetic**: Luxurious minimalism — stone gray palette, no emojis, thin Lucide icons (stroke-width 1.5)
-- **Dark theme**: Warm stone grays (`#1a1918` bg, `#252423` cards) — NOT blue/zinc
+- **Dark theme**: Cool gray-stone (`#18181b` bg, `#27272a` cards) — neutral gray, not warm brown, not blue/zinc
 - **Cards lighter than background** — cards pop as elevated surfaces
 - **Max-width**: 1600px centered, navbar matches
 - **Font sizes**: Always use `var(--font-*)` tokens — never hardcode px values (xs=13px, sm=14px, base=16px, md=17px, lg=18px, xl=22px)

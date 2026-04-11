@@ -3,7 +3,9 @@
    Inspired by Vercel, Linear, Stripe
    ═══════════════════════════════════════════════════════════════════ */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -74,19 +76,19 @@
   --accent-muted: #a1a1aa;
   --accent-subtle: rgba(161, 161, 170, 0.08);
 
-  --cal: #d4a574;
-  --cal-bg: rgba(212, 165, 116, 0.08);
-  --pro: #8b9cf7;
-  --pro-bg: rgba(139, 156, 247, 0.08);
-  --carb: #6ec9a8;
-  --carb-bg: rgba(110, 201, 168, 0.08);
-  --fat: #c4879b;
-  --fat-bg: rgba(196, 135, 155, 0.08);
+  --cal: #c4a882;
+  --cal-bg: rgba(196, 168, 130, 0.08);
+  --pro: #9a9bb8;
+  --pro-bg: rgba(154, 155, 184, 0.08);
+  --carb: #7faa98;
+  --carb-bg: rgba(127, 170, 152, 0.08);
+  --fat: #b08a8f;
+  --fat-bg: rgba(176, 138, 143, 0.08);
 
-  --success: #6ec9a8;
-  --success-bg: rgba(110, 201, 168, 0.06);
-  --danger: #c97070;
-  --danger-bg: rgba(201, 112, 112, 0.06);
+  --success: #7faa98;
+  --success-bg: rgba(127, 170, 152, 0.06);
+  --danger: #b07272;
+  --danger-bg: rgba(176, 114, 114, 0.06);
 
   color-scheme: dark;
 }
@@ -154,19 +156,38 @@ body {
   letter-spacing: -0.01em;
 }
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: var(--radius-full); }
-::-webkit-scrollbar-thumb:hover { background: var(--text-2); }
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
 
-::selection { background: var(--accent); color: var(--bg-0); }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-4);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-2);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg-0);
+}
 
 a {
   color: var(--text-0);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
-a:hover { color: var(--text-1); }
+
+a:hover {
+  color: var(--text-1);
+}
 
 :focus-visible {
   outline: 1px solid var(--text-2);
@@ -194,36 +215,58 @@ a:hover { color: var(--text-1); }
   letter-spacing: -0.01em;
 }
 
-.btn:active { transform: scale(0.98); }
+.btn:active {
+  transform: scale(0.98);
+}
 
 .btn-primary {
   background: var(--text-0);
   color: var(--bg-0);
 }
-.btn-primary:hover { opacity: 0.85; }
+
+.btn-primary:hover {
+  opacity: 0.85;
+}
 
 .btn-secondary {
   background: transparent;
   color: var(--text-0);
   border: 1px solid var(--border-strong);
 }
-.btn-secondary:hover { background: var(--bg-hover); }
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+}
 
 .btn-ghost {
   background: transparent;
   color: var(--text-1);
 }
-.btn-ghost:hover { background: var(--bg-hover); color: var(--text-0); }
+
+.btn-ghost:hover {
+  background: var(--bg-hover);
+  color: var(--text-0);
+}
 
 .btn-danger {
   background: var(--danger-bg);
   color: var(--danger);
   border: 1px solid rgba(201, 112, 112, 0.15);
 }
-.btn-danger:hover { background: rgba(201, 112, 112, 0.12); }
 
-.btn-sm { padding: 5px 10px; font-size: var(--font-xs); }
-.btn-lg { padding: 10px 20px; font-size: var(--font-md); }
+.btn-danger:hover {
+  background: rgba(201, 112, 112, 0.12);
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: var(--font-xs);
+}
+
+.btn-lg {
+  padding: 10px 20px;
+  font-size: var(--font-md);
+}
 
 /* ─── Inputs ────────────────────────────────────────────────────── */
 .input {
@@ -238,12 +281,16 @@ a:hover { color: var(--text-1); }
   transition: all var(--transition-fast);
   letter-spacing: -0.01em;
 }
+
 .input:focus {
   outline: none;
   border-color: var(--border-strong);
   background: var(--bg-1);
 }
-.input::placeholder { color: var(--text-3); }
+
+.input::placeholder {
+  color: var(--text-3);
+}
 
 .label {
   display: block;
@@ -284,30 +331,74 @@ a:hover { color: var(--text-1); }
 
 /* ─── Animations ────────────────────────────────────────────────── */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-.animate-fade-in { animation: fadeIn 300ms ease both; }
-.animate-slide-up { animation: slideUp 350ms ease both; }
-.animate-scale-in { animation: scaleIn 250ms ease both; }
+.animate-fade-in {
+  animation: fadeIn 300ms ease both;
+}
 
-.stagger-1 { animation-delay: 30ms; }
-.stagger-2 { animation-delay: 60ms; }
-.stagger-3 { animation-delay: 90ms; }
-.stagger-4 { animation-delay: 120ms; }
-.stagger-5 { animation-delay: 150ms; }
-.stagger-6 { animation-delay: 180ms; }
+.animate-slide-up {
+  animation: slideUp 350ms ease both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 250ms ease both;
+}
+
+.stagger-1 {
+  animation-delay: 30ms;
+}
+
+.stagger-2 {
+  animation-delay: 60ms;
+}
+
+.stagger-3 {
+  animation-delay: 90ms;
+}
+
+.stagger-4 {
+  animation-delay: 120ms;
+}
+
+.stagger-5 {
+  animation-delay: 150ms;
+}
+
+.stagger-6 {
+  animation-delay: 180ms;
+}
 
 /* ─── Drag & Drop ───────────────────────────────────────────────── */
 .dnd-drop-target {
@@ -324,7 +415,9 @@ a:hover { color: var(--text-1); }
   animation: slideUp 300ms ease both;
 }
 
-.page-header { margin-bottom: var(--space-6); }
+.page-header {
+  margin-bottom: var(--space-6);
+}
 
 .page-title {
   font-size: var(--font-2xl);
@@ -394,15 +487,30 @@ a:hover { color: var(--text-1); }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.3; }
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
 }
 
 /* ─── Number styling ────────────────────────────────────────────── */
-.mono { font-family: var(--font-mono); letter-spacing: -0.02em; }
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
+}
 
 /* ─── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .page-container { padding: var(--space-4); }
-  .page-title { font-size: var(--font-xl); }
+  .page-container {
+    padding: var(--space-4);
+  }
+
+  .page-title {
+    font-size: var(--font-xl);
+  }
 }

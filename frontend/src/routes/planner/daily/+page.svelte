@@ -199,7 +199,7 @@
 
   .palette {
     background: var(--bg-1);
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-4);
     position: sticky;
@@ -229,7 +229,7 @@
 
   .slot {
     background: var(--bg-1);
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-4);
   }

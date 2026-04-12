@@ -112,7 +112,7 @@
   .builder { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); margin-top: var(--space-5); }
 
   .panel {
-    background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5);
+    background: var(--bg-1); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5);
   }
   .panel-label { font-size: var(--font-xs); color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; display: block; margin-bottom: var(--space-3); }
 
@@ -130,7 +130,7 @@
   .sel-item { display: flex; align-items: center; gap: var(--space-2); padding: 4px 6px; background: var(--bg-2); border-radius: var(--radius-sm); }
   .sel-name { flex: 1; font-size: var(--font-sm); }
   .qty-input {
-    width: 56px; padding: 2px 4px; background: var(--bg-1); border: 1px solid var(--border); border-radius: 3px;
+    width: 56px; padding: 2px 4px; background: var(--bg-1); border: var(--border-width) solid var(--border); border-radius: 3px;
     color: var(--text-0); font-size: var(--font-sm); text-align: center; font-family: var(--font-mono);
   }
   .qty-g { font-size: var(--font-xs); color: var(--text-3); }

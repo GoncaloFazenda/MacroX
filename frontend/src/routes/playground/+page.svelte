@@ -80,7 +80,7 @@
 <style>
   .top-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-5); }
 
-  .summary { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4); background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: var(--space-5); flex-wrap: wrap; }
+  .summary { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4); background: var(--bg-1); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); margin-bottom: var(--space-5); flex-wrap: wrap; }
   .s-pass { font-size: var(--font-sm); font-weight: 500; color: var(--success); }
   .s-fail { font-size: var(--font-sm); font-weight: 500; color: var(--danger); }
   .s-total { font-size: var(--font-sm); color: var(--text-2); margin-left: auto; }
@@ -92,7 +92,7 @@
   .test-list { display: flex; flex-direction: column; }
   .test-row {
     display: flex; align-items: center; gap: var(--space-3);
-    padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border);
+    padding: var(--space-3) var(--space-4); border-bottom: var(--border-width) solid var(--border);
     animation: slideUp 200ms ease both;
   }
   .test-row.pass { border-left: 2px solid var(--success); }

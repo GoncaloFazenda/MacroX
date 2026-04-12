@@ -76,7 +76,7 @@
     z-index: 100;
     height: var(--navbar-height);
     background: var(--bg-0);
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-width) solid var(--border);
   }
 
   .navbar-inner {
@@ -127,6 +127,12 @@
     flex-shrink: 0;
   }
 
+  .nav-actions .btn-sm {
+    height: 33px;
+    width: 33px;
+    padding: 0;
+  }
+
   .user-name {
     font-size: var(--font-sm);
     color: var(--text-2);
@@ -143,7 +149,7 @@
       left: 0;
       right: 0;
       background: var(--bg-modal);
-      border-bottom: 1px solid var(--border);
+      border-bottom: var(--border-width) solid var(--border);
       flex-direction: column;
       padding: var(--space-3);
       gap: var(--space-1);

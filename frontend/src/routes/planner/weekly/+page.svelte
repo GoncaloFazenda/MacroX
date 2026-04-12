@@ -163,10 +163,10 @@
   .search-row { position: relative; margin-bottom: var(--space-5); }
   .search-dropdown {
     position: absolute; top: 100%; left: 0; max-width: 320px; width: 100%; margin-top: var(--space-1);
-    background: var(--bg-modal); border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+    background: var(--bg-modal); border: var(--border-width) solid var(--border-strong); border-radius: var(--radius-md);
     z-index: 10; max-height: 250px; overflow-y: auto;
   }
-  .sd-item { display: flex; align-items: center; gap: var(--space-2); padding: 4px 8px; border-bottom: 1px solid var(--border); }
+  .sd-item { display: flex; align-items: center; gap: var(--space-2); padding: 4px 8px; border-bottom: var(--border-width) solid var(--border); }
   .sd-item:last-child { border-bottom: none; }
   .sd-item:hover { background: var(--bg-hover); }
   .sd-name { flex: 1; font-size: var(--font-sm); }
@@ -182,7 +182,7 @@
   .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--space-2); }
 
   .day-col {
-    background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background: var(--bg-1); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg);
     padding: var(--space-3); min-height: 280px;
   }
   .day-col:hover { border-color: var(--border-strong); }

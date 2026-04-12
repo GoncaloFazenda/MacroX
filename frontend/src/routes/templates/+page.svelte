@@ -58,7 +58,7 @@
 <style>
   .top-bar { margin-bottom: var(--space-5); }
   .tmpl-list { display: flex; flex-direction: column; }
-  .tmpl-row { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); }
+  .tmpl-row { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); border-bottom: var(--border-width) solid var(--border); }
   .tmpl-row:hover { background: var(--bg-hover); }
   .tmpl-info { flex: 1; }
   .tmpl-name { font-size: var(--font-sm); font-weight: 500; display: block; }

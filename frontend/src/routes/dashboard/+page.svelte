@@ -155,7 +155,7 @@
 
   .macro-card {
     background: var(--bg-1);
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-5);
   }
@@ -180,7 +180,7 @@
     gap: var(--space-1);
     padding: var(--space-5);
     background: var(--bg-1);
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
     border-radius: var(--radius-lg);
     transition: all var(--transition-fast);
   }

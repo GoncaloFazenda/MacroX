@@ -72,7 +72,7 @@
     width: 100%;
     max-width: 360px;
     background: var(--bg-1);
-    border: 1px solid var(--border);
+    border: var(--border-width) solid var(--border);
     border-radius: var(--radius-xl);
     padding: var(--space-8);
   }
@@ -94,7 +94,7 @@
   .auth-error {
     padding: var(--space-3);
     background: var(--danger-bg);
-    border: 1px solid rgba(201, 112, 112, 0.15);
+    border: var(--border-width) solid rgba(201, 112, 112, 0.15);
     border-radius: var(--radius-md);
     color: var(--danger);
     font-size: var(--font-sm);

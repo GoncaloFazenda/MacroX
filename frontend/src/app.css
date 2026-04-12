@@ -47,6 +47,7 @@
   --transition-slow: 350ms ease;
 
   --navbar-height: 56px;
+  --border-width: 1.5px;
 }
 
 /* ─── Dark Theme ────────────────────────────────────────────────── */
@@ -191,6 +192,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -237,7 +239,7 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 1px solid var(--text-2);
+  outline: var(--border-width) solid var(--text-2);
   outline-offset: 2px;
 }
 
@@ -278,7 +280,7 @@ a:hover {
 .btn-secondary {
   background: transparent;
   color: var(--text-0);
-  border: 1px solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
 }
 
 .btn-secondary:hover {
@@ -298,7 +300,7 @@ a:hover {
 .btn-danger {
   background: var(--danger-bg);
   color: var(--danger);
-  border: 1px solid rgba(201, 112, 112, 0.15);
+  border: var(--border-width) solid rgba(201, 112, 112, 0.15);
 }
 
 .btn-danger:hover {
@@ -320,7 +322,7 @@ a:hover {
   width: 100%;
   padding: 9px 12px;
   background: transparent;
-  border: 1px solid var(--border-strong);
+  border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-md);
   color: var(--text-0);
   font-family: var(--font-sans);
@@ -493,7 +495,7 @@ a:hover {
 
 .modal-content {
   background: var(--bg-modal);
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
   max-width: 420px;

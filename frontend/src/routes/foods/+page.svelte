@@ -126,7 +126,7 @@
 
   .search-box {
     display: flex; align-items: center; gap: var(--space-2);
-    background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--bg-2); border: var(--border-width) solid var(--border); border-radius: var(--radius-md);
     padding: 0 var(--space-3); max-width: 280px; color: var(--text-3);
   }
   .search-input {
@@ -137,7 +137,7 @@
 
   .chips { display: flex; gap: var(--space-1); margin-bottom: var(--space-5); flex-wrap: wrap; }
   .chip {
-    padding: 3px 10px; background: transparent; border: 1px solid var(--border);
+    padding: 3px 10px; background: transparent; border: var(--border-width) solid var(--border);
     border-radius: var(--radius-full); font-size: var(--font-sm); font-weight: 400;
     color: var(--text-2); cursor: pointer; font-family: var(--font-sans); transition: all var(--transition-fast);
   }
@@ -151,7 +151,7 @@
     grid-template-columns: 1fr 100px 60px 60px 70px 50px 50px 36px;
     gap: var(--space-2);
     padding: var(--space-2) var(--space-3);
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-width) solid var(--border);
   }
 
   .th {
@@ -164,7 +164,7 @@
     grid-template-columns: 1fr 100px 60px 60px 70px 50px 50px 36px;
     gap: var(--space-2);
     padding: 6px var(--space-3);
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-width) solid var(--border);
     transition: background var(--transition-fast);
     animation: slideUp 200ms ease both;
   }

@@ -59,7 +59,7 @@
   .meal-row {
     display: flex; align-items: center; gap: var(--space-4);
     padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--border);
+    border-bottom: var(--border-width) solid var(--border);
     transition: background var(--transition-fast);
   }
   .meal-row:hover { background: var(--bg-hover); }

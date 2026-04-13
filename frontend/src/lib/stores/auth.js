@@ -50,13 +50,8 @@ function createAuthStore() {
     },
 
     async updateGoals(goals) {
-      try {
-        const data = await api.put('/auth/goals', { goals });
-        update((s) => ({ ...s, user: data.user }));
-        return true;
-      } catch (err) {
-        return false;
-      }
+      const data = await api.put('/auth/goals', { goals });
+      update((s) => ({ ...s, user: data.user }));
     },
 
     clearError() {

@@ -6,9 +6,9 @@ export interface IUser extends Document {
   name: string;
   goals: {
     calories: number;
-    protein: number;
-    netCarbs: number;
-    fat: number;
+    protein: number | null;
+    netCarbs: number | null;
+    fat: number | null;
   };
   createdAt: Date;
   updatedAt: Date;

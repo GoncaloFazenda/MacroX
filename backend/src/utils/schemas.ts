@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
 // ─── User ───────────────────────────────────────────
+const nullableGoal = z.union([z.null(), z.coerce.number().min(0)]);
+
 export const goalsSchema = z.object({
-  calories: z.number().min(0).default(2000),
-  protein: z.number().min(0).default(150),
-  netCarbs: z.number().min(0).default(100),
-  fat: z.number().min(0).default(65),
+  calories: z.coerce.number().min(0).default(2000),
+  protein: nullableGoal.default(null),
+  netCarbs: nullableGoal.default(null),
+  fat: nullableGoal.default(null),
 });
 
 export const registerSchema = z.object({

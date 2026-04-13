@@ -189,7 +189,14 @@ router.put('/goals', authenticate, async (req: AuthenticatedRequest, res: Respon
 
     const user = await User.findByIdAndUpdate(
       req.user!.userId,
-      { goals: data.goals },
+      {
+        $set: {
+          'goals.calories': data.goals.calories,
+          'goals.protein': data.goals.protein ?? null,
+          'goals.netCarbs': data.goals.netCarbs ?? null,
+          'goals.fat': data.goals.fat ?? null,
+        },
+      },
       { new: true }
     );
 

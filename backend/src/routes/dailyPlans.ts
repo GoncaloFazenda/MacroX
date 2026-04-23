@@ -1,5 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import DailyPlan from '../models/DailyPlan';
+import WeeklyPlan from '../models/WeeklyPlan';
 import { upsertDailyPlanSchema } from '../utils/schemas';
 import { authenticate } from '../middleware/auth';
 import type { AuthenticatedRequest } from '../types';
@@ -89,6 +90,40 @@ router.put('/', authenticate, async (req: AuthenticatedRequest, res: Response, n
       },
       { upsert: true, new: true }
     );
+
+    // ─── Sync to WeeklyPlan ─────────────────────────
+    const dateObj = new Date(data.date + 'T00:00:00Z');
+    // Convert JS day (Sun=0) to our system (Mon=0)
+    const jsDow = dateObj.getUTCDay();
+    const dayOfWeek = (jsDow + 6) % 7; // Mon=0, Tue=1, ..., Sun=6
+
+    // Calculate week start (Monday)
+    const weekStartDate = new Date(dateObj);
+    weekStartDate.setUTCDate(weekStartDate.getUTCDate() - dayOfWeek);
+
+    const hasMeals = data.meals.some(m => m.items.length > 0);
+
+    const weeklyPlan = await WeeklyPlan.findOne({
+      userId: req.user!.userId,
+      weekStart: weekStartDate,
+    });
+
+    if (weeklyPlan) {
+      // Update existing weekly plan — replace only this day's entry
+      const otherDays = weeklyPlan.days.filter(d => d.dayOfWeek !== dayOfWeek);
+      if (hasMeals) {
+        otherDays.push({ dayOfWeek, meals: data.meals } as any);
+      }
+      weeklyPlan.days = otherDays;
+      await weeklyPlan.save();
+    } else if (hasMeals) {
+      // Create new weekly plan with just this day
+      await WeeklyPlan.create({
+        userId: req.user!.userId,
+        weekStart: weekStartDate,
+        days: [{ dayOfWeek, meals: data.meals }],
+      });
+    }
 
     res.json({ plan });
   } catch (error) {

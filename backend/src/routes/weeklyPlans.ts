@@ -1,5 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import WeeklyPlan from '../models/WeeklyPlan';
+import DailyPlan from '../models/DailyPlan';
 import { upsertWeeklyPlanSchema } from '../utils/schemas';
 import { authenticate } from '../middleware/auth';
 import type { AuthenticatedRequest } from '../types';
@@ -64,6 +65,27 @@ router.put('/', authenticate, async (req: AuthenticatedRequest, res: Response, n
       },
       { upsert: true, new: true }
     );
+
+    // ─── Sync each day to DailyPlan ─────────────────
+    const weekStartDate = new Date(data.weekStart + 'T00:00:00Z');
+    for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+      const dayDate = new Date(weekStartDate);
+      dayDate.setUTCDate(dayDate.getUTCDate() + dayOfWeek);
+
+      const dayData = data.days.find(d => d.dayOfWeek === dayOfWeek);
+      const hasMeals = dayData && dayData.meals.some(m => m.items.length > 0);
+
+      if (hasMeals) {
+        await DailyPlan.findOneAndUpdate(
+          { userId: req.user!.userId, date: dayDate },
+          { userId: req.user!.userId, date: dayDate, meals: dayData!.meals },
+          { upsert: true, new: true }
+        );
+      } else {
+        // Day has no meals — remove the daily plan if one exists
+        await DailyPlan.deleteOne({ userId: req.user!.userId, date: dayDate });
+      }
+    }
 
     res.json({ plan });
   } catch (error) {

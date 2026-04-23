@@ -102,6 +102,14 @@ export const createMealTemplateSchema = z.object({
 
 export const updateMealTemplateSchema = createMealTemplateSchema.partial();
 
+// ─── Day Template ───────────────────────────────────
+export const createDayTemplateSchema = z.object({
+  name: z.string().min(1).max(200),
+  meals: z.array(mealSlotSchema).min(1),
+});
+
+export const updateDayTemplateSchema = createDayTemplateSchema.partial();
+
 // ─── Type Exports ───────────────────────────────────
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -111,4 +119,5 @@ export type CreateCompositeMealInput = z.infer<typeof createCompositeMealSchema>
 export type UpsertDailyPlanInput = z.infer<typeof upsertDailyPlanSchema>;
 export type UpsertWeeklyPlanInput = z.infer<typeof upsertWeeklyPlanSchema>;
 export type CreateMealTemplateInput = z.infer<typeof createMealTemplateSchema>;
+export type CreateDayTemplateInput = z.infer<typeof createDayTemplateSchema>;
 export type Goals = z.infer<typeof goalsSchema>;

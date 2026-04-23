@@ -3,9 +3,10 @@
   import { foodStore } from '$lib/stores/foods.js';
   import { mealStore } from '$lib/stores/meals.js';
   import { plannerStore } from '$lib/stores/planner.js';
+  import { dayTemplateStore } from '$lib/stores/dayTemplates.js';
   import { onMount } from 'svelte';
   import { formatDate, getPercentage } from '$lib/utils/macros.js';
-  import { ChevronLeft, ChevronRight, X, Plus, Sparkles, GripVertical } from 'lucide-svelte';
+  import { ChevronLeft, ChevronRight, X, Plus, Sparkles, GripVertical, Bookmark } from 'lucide-svelte';
   import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
   import { flip } from 'svelte/animate';
 
@@ -116,7 +117,7 @@
 
   function slotTotal(items) { return items.reduce((s, i) => s + (i.cal || 0), 0); }
 
-  // Suggestions that fit remaining goals
+  // Suggestions that fit remaining goals — only show foods that won't exceed any tracked macro
   const suggestions = $derived.by(() => {
     const rem = {
       cal: (goals.calories || 2000) - totals.cal,
@@ -126,12 +127,15 @@
     };
     if (rem.cal <= 50) return [];
     return $foodStore.foods
-      .filter(f => f.calories <= rem.cal && f.calories > 0)
+      .filter(f =>
+        f.calories > 0 &&
+        f.calories <= rem.cal &&
+        f.netCarbs <= rem.netCarbs &&
+        f.fat <= rem.fat
+      )
       .map(f => {
         let score = 0;
         if (goals.protein != null && rem.protein > 10) score += (f.protein / Math.max(f.calories, 1)) * 100;
-        if (f.netCarbs > rem.netCarbs) score -= 20;
-        if (f.fat > rem.fat) score -= 20;
         return { ...f, score };
       })
       .sort((a, b) => b.score - a.score)
@@ -246,6 +250,7 @@
       }
     }
     slots = { ...slots };
+    syncSuggestions();
   }
 
   function removeItem(slot, id) { slots[slot] = slots[slot].filter(i => i.id !== id); slots = { ...slots }; syncSuggestions(); }
@@ -262,6 +267,40 @@
     saving = false;
   }
 
+  // ── Save as Day Template ──
+  let showTemplateModal = $state(false);
+  let templateName = $state('');
+  let savingTemplate = $state(false);
+
+  function openTemplateModal() {
+    const totalItems = Object.values(slots).flat().length;
+    if (totalItems === 0) { alert('Add some items first before saving as a template.'); return; }
+    templateName = '';
+    showTemplateModal = true;
+  }
+
+  async function saveAsTemplate() {
+    if (!templateName.trim()) return;
+    savingTemplate = true;
+    try {
+      const meals = Object.entries(slots)
+        .filter(([, items]) => items.length > 0)
+        .map(([slot, items]) => ({
+          slot, items: items.map(i => ({ type: i.type, refId: i.refId, quantity: i.quantity })),
+        }));
+      await dayTemplateStore.create(templateName.trim(), meals);
+      showTemplateModal = false;
+      alert('Day template saved!');
+    } catch (err) { alert('Failed to save template: ' + err.message); }
+    savingTemplate = false;
+  }
+
+  const templateSummary = $derived.by(() => {
+    const filledSlots = Object.entries(slots).filter(([, items]) => items.length > 0);
+    const totalItems = Object.values(slots).flat().length;
+    return { slotCount: filledSlots.length, totalItems, filledSlots };
+  });
+
   function prevDay() { const d = new Date(currentDate); d.setDate(d.getDate() - 1); currentDate = formatDate(d); loadPlan().then(syncSuggestions); }
   function nextDay() { const d = new Date(currentDate); d.setDate(d.getDate() + 1); currentDate = formatDate(d); loadPlan().then(syncSuggestions); }
 </script>
@@ -276,6 +315,7 @@
     </div>
     <div class="top-actions">
       {#if saved}<span class="saved-msg">Saved</span>{/if}
+      <button class="btn btn-secondary btn-sm" onclick={openTemplateModal}><Bookmark size={13} strokeWidth={1.5} />Save as Template</button>
       <button class="btn btn-primary" onclick={savePlan} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
     </div>
   </div>
@@ -482,6 +522,38 @@
     </div>
   </div>
 </div>
+
+{#if showTemplateModal}
+  <div class="modal-overlay" onclick={() => showTemplateModal = false}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <h2 style="font-size: var(--font-lg); font-weight: 600; margin-bottom: var(--space-1);">Save as Day Template</h2>
+      <p style="font-size: var(--font-xs); color: var(--text-2); margin-bottom: var(--space-5);">Save today's meal plan as a reusable template</p>
+
+      <label class="label" for="tpl-name">TEMPLATE NAME</label>
+      <input id="tpl-name" type="text" class="input" placeholder="e.g. Lean Day, High Protein..." bind:value={templateName} style="margin-bottom: var(--space-4);" />
+
+      <div style="padding: var(--space-3); border: var(--border-width) solid var(--border); border-radius: var(--radius-md); margin-bottom: var(--space-5);">
+        <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); font-weight: 600;">{templateSummary.slotCount} meals · {templateSummary.totalItems} items</span>
+        <div style="margin-top: var(--space-2); display: flex; gap: var(--space-2); flex-wrap: wrap;">
+          <span class="mono" style="font-size: var(--font-xs); color: var(--cal);">{totals.cal} kcal</span>
+          <span class="mono" style="font-size: var(--font-xs); color: var(--pro);">{totals.protein}p</span>
+          <span class="mono" style="font-size: var(--font-xs); color: var(--carb);">{totals.netCarbs}c</span>
+          <span class="mono" style="font-size: var(--font-xs); color: var(--fat);">{totals.fat}f</span>
+        </div>
+        <div style="margin-top: var(--space-2); font-size: var(--font-xs); color: var(--text-2);">
+          {#each templateSummary.filledSlots as [slot, items]}
+            <span>{slot.charAt(0).toUpperCase() + slot.slice(1)} ({items.length}){templateSummary.filledSlots.indexOf([slot, items]) < templateSummary.filledSlots.length - 1 ? ' · ' : ''}</span>
+          {/each}
+        </div>
+      </div>
+
+      <div style="display: flex; gap: var(--space-2); justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick={() => showTemplateModal = false}>Cancel</button>
+        <button class="btn btn-primary" onclick={saveAsTemplate} disabled={savingTemplate || !templateName.trim()}>{savingTemplate ? 'Saving...' : 'Save Template'}</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .top-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-4); }

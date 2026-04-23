@@ -15,6 +15,7 @@ import compositeMealRoutes from './routes/compositeMeals';
 import dailyPlanRoutes from './routes/dailyPlans';
 import weeklyPlanRoutes from './routes/weeklyPlans';
 import templateRoutes from './routes/templates';
+import dayTemplateRoutes from './routes/dayTemplates';
 
 dotenv.config();
 
@@ -70,6 +71,7 @@ app.use('/api/composite-meals', compositeMealRoutes);
 app.use('/api/daily-plans', dailyPlanRoutes);
 app.use('/api/weekly-plans', weeklyPlanRoutes);
 app.use('/api/templates', templateRoutes);
+app.use('/api/day-templates', dayTemplateRoutes);
 
 // ─── Health Check ───────────────────────────────────
 app.get('/api/health', (_req, res) => {

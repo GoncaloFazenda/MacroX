@@ -133,20 +133,20 @@
 
   <!-- Quick Nav -->
   <div class="nav-row animate-slide-up stagger-5">
-    <a href="/planner/daily" class="nav-card">
-      <span class="nc-label">Daily Planner</span>
+    <a href="/day" class="nav-card">
+      <span class="nc-label">My Day</span>
       <span class="nc-desc">Plan today's meals</span>
     </a>
-    <a href="/foods" class="nav-card">
-      <span class="nc-label">Food Database</span>
+    <a href="/library/foods-meals" class="nav-card">
+      <span class="nc-label">Foods & Meals</span>
       <span class="nc-desc">{$foodStore.pagination?.total || 0} foods</span>
     </a>
-    <a href="/meals/new" class="nav-card">
-      <span class="nc-label">Build Meal</span>
-      <span class="nc-desc">Create composite meal</span>
+    <a href="/library/templates" class="nav-card">
+      <span class="nc-label">Templates</span>
+      <span class="nc-desc">Saved day plans</span>
     </a>
-    <a href="/planner/weekly" class="nav-card">
-      <span class="nc-label">Weekly Planner</span>
+    <a href="/week" class="nav-card">
+      <span class="nc-label">My Week</span>
       <span class="nc-desc">Plan your week</span>
     </a>
   </div>

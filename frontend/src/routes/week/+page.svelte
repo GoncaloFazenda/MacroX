@@ -3,7 +3,8 @@
   import { mealStore } from "$lib/stores/meals.js";
   import { plannerStore } from "$lib/stores/planner.js";
   import { dayTemplateStore } from "$lib/stores/dayTemplates.js";
-  import { onMount } from "svelte";
+  import { onMount, flushSync } from "svelte";
+  import { Search, X as XIcon } from "lucide-svelte";
   import { getWeekStart, getDayNames, formatDate } from "$lib/utils/macros.js";
   import {
     ChevronLeft,
@@ -14,29 +15,60 @@
     ChevronUp,
     ChevronDown,
   } from "lucide-svelte";
+  import { dndzone } from "svelte-dnd-action";
+  import { flip } from "svelte/animate";
+
+  const FLIP_MS = 150;
+  const DOCK_ZONE = "weekly-dock-zone";
+  const DOCK_ITEM_ID = "dock-container";
 
   let weekStart = $state(getWeekStart());
   let saving = $state(false);
   let saved = $state(false);
   let nextId = 1;
-  let dockPosition = $state(
+  const initialDockPos =
     typeof window !== "undefined"
       ? localStorage.getItem("macrox-dock-pos") || "bottom"
-      : "bottom",
-  );
+      : "bottom";
+  let dockPosition = $state(initialDockPos);
   let draggingTemplate = $state(null);
   let hoverDay = $state(-1);
   let selectedTemplate = $state(null);
   let hoverPreview = $state(null);
-  let draggingDock = $state(false);
-  let dockDropHover = $state(null);
+  let dockSearch = $state('');
+
+  const filteredDockTemplates = $derived.by(() => {
+    const q = dockSearch.trim().toLowerCase();
+    if (!q) return $dayTemplateStore.templates;
+    return $dayTemplateStore.templates.filter(t => {
+      if (t.name.toLowerCase().includes(q)) return true;
+      for (const meal of t.meals || []) {
+        for (const item of meal.items || []) {
+          const name = item.type === 'food'
+            ? $foodStore.foods.find(f => f._id === item.refId)?.name || ''
+            : $mealStore.meals.find(m => m._id === item.refId)?.name || '';
+          if (name.toLowerCase().includes(q)) return true;
+        }
+      }
+      return false;
+    });
+  });
+
+  // Dock repositioning via dndzone — mirrors the daily page's item-move pattern
+  let dockDragDisabled = $state(true);
+  let dockDragActive = $state(false);
+  let dockItems = $state({
+    top: initialDockPos === "top" ? [{ id: DOCK_ITEM_ID }] : [],
+    bottom: initialDockPos === "bottom" ? [{ id: DOCK_ITEM_ID }] : [],
+  });
   let dockEl = $state(null);
   let dockHeight = $state(0);
 
   $effect(() => {
     if (!dockEl) return;
     const measure = () => {
-      dockHeight = dockEl.offsetHeight;
+      const h = dockEl.offsetHeight;
+      if (h > 0) dockHeight = h;
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -259,44 +291,56 @@
   }
 
   // Dock position
-  function toggleDock() {
-    dockPosition = dockPosition === "bottom" ? "top" : "bottom";
-    localStorage.setItem("macrox-dock-pos", dockPosition);
+  function setDockPosition(pos) {
+    dockPosition = pos;
+    localStorage.setItem("macrox-dock-pos", pos);
+    dockItems = {
+      top: pos === "top" ? [{ id: DOCK_ITEM_ID }] : [],
+      bottom: pos === "bottom" ? [{ id: DOCK_ITEM_ID }] : [],
+    };
   }
 
-  // Dock drag-to-reposition
-  function onDockDragStart(e) {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", "__dock__");
-    
-    
-    // Defer state change so the browser captures the drag image
-    // before Svelte removes the source from the DOM.
-    setTimeout(() => {
-      draggingDock = true;
-    }, 0);
+  function toggleDock() {
+    setDockPosition(dockPosition === "bottom" ? "top" : "bottom");
   }
-  function onDockDragEnd() {
-    draggingDock = false;
-    dockDropHover = null;
+
+  // Dock drag-to-reposition via dndzone
+  // Enable drag on hover of the handle (fires well before mousedown, so by the time
+  // the user presses, the dndzone wrapper already has draggable=true — first drag works).
+  function onHandleEnter() {
+    dockDragDisabled = false;
   }
-  function onDockZoneDragOver(e, pos) {
-    if (!draggingDock) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    dockDropHover = pos;
+  function onHandleLeave() {
+    // Don't disable mid-drag — cursor leaves the handle as the dock starts moving.
+    if (!dockDragActive) dockDragDisabled = true;
   }
-  function onDockZoneDragLeave(pos) {
-    if (dockDropHover === pos) dockDropHover = null;
+  // Touch fallback: no hover on touch devices, so flushSync on pointerdown.
+  function onHandlePointerDown() {
+    flushSync(() => {
+      dockDragDisabled = false;
+    });
   }
-  function onDockZoneDrop(e, pos) {
-    e.preventDefault();
-    if (draggingDock && pos !== dockPosition) {
-      dockPosition = pos;
-      localStorage.setItem("macrox-dock-pos", pos);
+
+  function handleDockConsider(pos, e) {
+    dockDragActive = true;
+    dockItems[pos] = e.detail.items;
+    dockItems = { ...dockItems };
+  }
+
+  function handleDockFinalize(pos, e) {
+    dockItems[pos] = e.detail.items;
+    dockItems = { ...dockItems };
+    const newPos = dockItems.top.length > 0 ? "top" : "bottom";
+    if (newPos !== dockPosition) {
+      dockPosition = newPos;
+      localStorage.setItem("macrox-dock-pos", newPos);
     }
-    draggingDock = false;
-    dockDropHover = null;
+    // Keep the active state on through the flip animation so the source zone
+    // holds its reserved height. Then release — the min-height transition collapses smoothly.
+    setTimeout(() => {
+      dockDragActive = false;
+      dockDragDisabled = true;
+    }, FLIP_MS);
   }
 
   async function savePlan() {
@@ -341,6 +385,11 @@
     const d = new Date(weekStart);
     d.setDate(d.getDate() + i);
     return d.getDate();
+  }
+  function getDateStr(i) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return formatDate(d);
   }
 
   function getTemplatePreviewText(template) {
@@ -397,31 +446,29 @@
     </div>
   {/if}
 
-  <!-- Dock drop zone (top) — shown during drag -->
-  {#if draggingDock}
-    <div
-      class="dock-drop-zone"
-      class:dock-drop-zone-active={dockDropHover === "top"}
-      class:dock-drop-zone-origin={dockPosition === "top"}
-      style="min-height: {dockHeight}px;"
-      ondragover={(e) => onDockZoneDragOver(e, "top")}
-      ondragleave={() => onDockZoneDragLeave("top")}
-      ondrop={(e) => onDockZoneDrop(e, "top")}
-      role="region"
-      aria-label="Drop templates here (top)"
-    >
-      <span class="dock-drop-text">
-        {dockPosition === "top"
-          ? "Drop here to keep above"
-          : "Drop here to move above"}
-      </span>
-    </div>
-  {/if}
-
-  <!-- Template Dock (top position) -->
-  {#if dockPosition === "top" && !draggingDock}
-    {@render templateDock()}
-  {/if}
+  <!-- Dock zone (top) — always rendered; expands during drag when empty -->
+  <div
+    class="dock-zone dock-zone-top"
+    class:dock-zone-empty={dockItems.top.length === 0}
+    class:dock-zone-dragging={dockDragActive}
+    style:--dock-h="{dockHeight}px"
+    use:dndzone={{
+      items: dockItems.top,
+      flipDurationMs: FLIP_MS,
+      type: DOCK_ZONE,
+      dragDisabled: dockDragDisabled,
+      dropTargetClasses: ["dock-zone-highlight"],
+      dropTargetStyle: {},
+    }}
+    onconsider={(e) => handleDockConsider("top", e)}
+    onfinalize={(e) => handleDockFinalize("top", e)}
+  >
+    {#each dockItems.top as item (item.id)}
+      <div animate:flip={{ duration: FLIP_MS }}>
+        {@render templateDock()}
+      </div>
+    {/each}
+  </div>
 
   <!-- 4+3 Grid -->
   <div class="week-grid animate-slide-up stagger-2">
@@ -453,31 +500,29 @@
     </div>
   </div>
 
-  <!-- Template Dock (bottom position) -->
-  {#if dockPosition === "bottom" && !draggingDock}
-    {@render templateDock()}
-  {/if}
-
-  <!-- Dock drop zone (bottom) — shown during drag -->
-  {#if draggingDock}
-    <div
-      class="dock-drop-zone"
-      class:dock-drop-zone-active={dockDropHover === "bottom"}
-      class:dock-drop-zone-origin={dockPosition === "bottom"}
-      style="min-height: {dockHeight}px;"
-      ondragover={(e) => onDockZoneDragOver(e, "bottom")}
-      ondragleave={() => onDockZoneDragLeave("bottom")}
-      ondrop={(e) => onDockZoneDrop(e, "bottom")}
-      role="region"
-      aria-label="Drop templates here (bottom)"
-    >
-      <span class="dock-drop-text">
-        {dockPosition === "bottom"
-          ? "Drop here to keep below"
-          : "Drop here to move below"}
-      </span>
-    </div>
-  {/if}
+  <!-- Dock zone (bottom) — always rendered; expands during drag when empty -->
+  <div
+    class="dock-zone dock-zone-bottom"
+    class:dock-zone-empty={dockItems.bottom.length === 0}
+    class:dock-zone-dragging={dockDragActive}
+    style:--dock-h="{dockHeight}px"
+    use:dndzone={{
+      items: dockItems.bottom,
+      flipDurationMs: FLIP_MS,
+      type: DOCK_ZONE,
+      dragDisabled: dockDragDisabled,
+      dropTargetClasses: ["dock-zone-highlight"],
+      dropTargetStyle: {},
+    }}
+    onconsider={(e) => handleDockConsider("bottom", e)}
+    onfinalize={(e) => handleDockFinalize("bottom", e)}
+  >
+    {#each dockItems.bottom as item (item.id)}
+      <div animate:flip={{ duration: FLIP_MS }}>
+        {@render templateDock()}
+      </div>
+    {/each}
+  </div>
 </div>
 
 {#snippet dayColumn(i)}
@@ -535,19 +580,24 @@
           {/if}
         {/each}
         {#if Object.values(days[i].meals).flat().length === 0}
-          <p class="day-ph">—</p>
+          <a href="/day?date={getDateStr(i)}" class="day-add-link" onclick={(e) => e.stopPropagation()}>
+            <Plus size={20} strokeWidth={1.5} />
+          </a>
         {/if}
       </div>
     {/if}
 
     {#if Object.values(days[i].meals).flat().length > 0 && !draggingTemplate}
-      <button
-        class="day-clear"
-        onclick={(e) => {
-          e.stopPropagation();
-          clearDay(i);
-        }}>Clear</button
-      >
+      <div class="day-bottom-actions">
+        <a href="/day?date={getDateStr(i)}" class="day-edit" onclick={(e) => e.stopPropagation()}>Edit</a>
+        <button
+          class="day-clear"
+          onclick={(e) => {
+            e.stopPropagation();
+            clearDay(i);
+          }}>Clear</button
+        >
+      </div>
     {/if}
   </div>
 {/snippet}
@@ -561,20 +611,20 @@
     <div class="dock-header">
       <div
         class="dock-handle"
-        draggable="true"
-        ondragstart={onDockDragStart}
-        ondragend={onDockDragEnd}
+        onmouseenter={onHandleEnter}
+        onmouseleave={onHandleLeave}
+        onpointerdown={onHandlePointerDown}
         title="Drag to reposition"
         aria-label="Drag to reposition templates dock"
         role="button"
         tabindex="0"
       >
         <GripVertical size={14} strokeWidth={1.5} />
-        <span class="dock-label">Day Templates</span>
+        <span class="dock-label">Day Plans</span>
       </div>
       <div class="dock-actions">
-        <a href="/planner/daily" class="btn btn-secondary btn-sm"
-          ><Plus size={14} strokeWidth={1.5} />Add in Daily</a
+        <a href="/day" class="btn btn-secondary btn-sm"
+          ><Plus size={14} strokeWidth={1.5} />Add in My Day</a
         >
         <button
           class="btn btn-ghost btn-sm dock-toggle"
@@ -588,21 +638,46 @@
         </button>
       </div>
     </div>
+    <!-- Dock search -->
+    <div class="dock-search">
+      <Search size={13} class="dock-search-icon" />
+      <input
+        class="dock-search-input"
+        type="text"
+        placeholder="Search day plans…"
+        bind:value={dockSearch}
+        onpointerdown={(e) => e.stopPropagation()}
+        onmousedown={(e) => e.stopPropagation()}
+      />
+      {#if dockSearch}
+        <button class="dock-search-clear" onclick={() => dockSearch = ''} aria-label="Clear search">
+          <XIcon size={11} />
+        </button>
+      {/if}
+    </div>
     <div class="dock-cards">
       {#if $dayTemplateStore.templates.length === 0}
         <p class="dock-empty">
-          No day templates yet. <a href="/planner/daily" class="dock-link"
-            >Create one in the Daily Planner</a
+          No day plans yet. <a href="/day" class="dock-link"
+            >Create one in My Day</a
           >
         </p>
+      {:else if filteredDockTemplates.length === 0}
+        <p class="dock-empty">No plans match "<strong>{dockSearch}</strong>"</p>
       {:else}
-        {#each $dayTemplateStore.templates as template}
+        {#each filteredDockTemplates as template}
           <div
             class="tpl-card"
             class:tpl-selected={selectedTemplate?._id === template._id}
             draggable="true"
-            ondragstart={(e) => onDragStart(e, template)}
+            ondragstart={(e) => {
+              e.stopPropagation();
+              onDragStart(e, template);
+            }}
             ondragend={onDragEnd}
+            onpointerdown={(e) => e.stopPropagation()}
+            onmousedown={(e) => e.stopPropagation()}
+            ontouchstart={(e) => e.stopPropagation()}
             onclick={() => handleTemplateClick(template)}
             onmouseenter={() => (hoverPreview = template._id)}
             onmouseleave={() => (hoverPreview = null)}
@@ -636,7 +711,7 @@
               class="tpl-del"
               onclick={(e) => {
                 e.stopPropagation();
-                if (confirm("Delete this template?"))
+                if (confirm("Delete this day plan?"))
                   dayTemplateStore.remove(template._id);
               }}
               aria-label="Delete template"
@@ -735,9 +810,8 @@
     border-style: dashed;
   }
   .day-col-drop {
-    border-color: var(--cal);
+    border-color: var(--text-1);
     border-style: dashed;
-    background: var(--cal-bg);
   }
   .day-col-selectable {
     cursor: pointer;
@@ -791,13 +865,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: var(--border-width) dashed var(--cal);
+    border: var(--border-width) dashed var(--text-1);
     border-radius: var(--radius-md);
-    background: var(--cal-bg);
   }
   .drop-text {
     font-size: var(--font-sm);
-    color: var(--cal);
+    color: var(--text-1);
     font-weight: 500;
   }
   .drop-hint {
@@ -868,19 +941,47 @@
   .di-rm:hover {
     color: var(--danger);
   }
-  .day-ph {
+  .day-add-link {
     text-align: center;
-    font-size: var(--font-sm);
     color: var(--text-3);
     padding: var(--space-6);
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    border: var(--border-width) dashed transparent;
   }
-  .day-clear {
+  .day-add-link:hover {
+    color: var(--text-1);
+    border-color: var(--border);
+    background: var(--bg-hover);
+  }
+  .day-bottom-actions {
     margin-top: auto;
     padding-top: var(--space-3);
+    display: flex;
+    justify-content: center;
+    gap: var(--space-3);
+  }
+  .day-edit {
+    background: none;
+    border: none;
+    font-size: var(--font-xs);
+    color: var(--text-2);
+    cursor: pointer;
+    font-family: var(--font-sans);
+    text-align: center;
+    transition: color var(--transition-fast);
+    text-decoration: none;
+  }
+  .day-edit:hover {
+    color: var(--text-0);
+  }
+  .day-clear {
+    margin-top: 0;
+    padding-top: 0;
     background: none;
     border: none;
     font-size: var(--font-xs);
@@ -986,33 +1087,63 @@
     cursor: grabbing;
   }
 
-  /* ── Dock drop zones ── */
-  .dock-drop-zone {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border: var(--border-width) dashed var(--border-strong);
+  /* ── Dock zones (dndzone-based) ── */
+  .dock-zone {
+    min-height: 0;
     border-radius: var(--radius-lg);
+    box-sizing: border-box;
+    transition:
+      min-height 180ms ease,
+      outline-color var(--transition-fast),
+      outline-width var(--transition-fast),
+      outline-style var(--transition-fast);
   }
-  .dock-drop-zone-active {
-    border-color: var(--cal);
-    background: var(--cal-bg);
+  .dock-zone-empty {
+    min-height: 0;
   }
-  .dock-drop-text {
-    font-size: var(--font-sm);
-    color: var(--text-2);
-    font-weight: 500;
-    letter-spacing: 0.01em;
+  /* During a dock drag, BOTH zones show a dashed drop-target outline so the user
+     sees every valid place they can drop. Outline doesn't affect layout, so the
+     source zone (which still holds the dock) gets the indicator too. */
+  .dock-zone-dragging {
+    outline: 1.5px dashed var(--text-2);
+    outline-offset: -1.5px;
   }
-  .dock-drop-zone-active .dock-drop-text {
-    color: var(--cal);
+  /* Empty zone reserves the exact dock height so dropping never causes a layout shift. */
+  .dock-zone-empty.dock-zone-dragging {
+    min-height: var(--dock-h, 0px);
+  }
+  .dock-zone-top.dock-zone-empty.dock-zone-dragging {
+    margin-bottom: var(--space-4);
+  }
+  .dock-zone-bottom.dock-zone-empty.dock-zone-dragging {
+    margin-top: var(--space-4);
+  }
+  /* Cursor is over this zone — confirms a valid drop spot with a brighter dashed outline. */
+  :global(.dock-zone-highlight) {
+    outline-color: var(--text-0) !important;
   }
 
-  /* Origin drop zone — the spot the dock came from, drop here to keep it */
-  .dock-drop-zone-origin {
-    background: var(--bg-hover);
+  .dock-search {
+    display: flex; align-items: center; gap: var(--space-2);
+    border: var(--border-width) solid var(--border); border-radius: var(--radius-md);
+    background: var(--bg-0); padding: 0 var(--space-3);
+    margin-bottom: var(--space-3);
+    transition: border-color var(--transition-fast);
   }
+  .dock-search:focus-within { border-color: var(--border-strong); }
+  :global(.dock-search-icon) { color: var(--text-3); flex-shrink: 0; }
+  .dock-search-input {
+    flex: 1; border: none; background: transparent;
+    padding: 7px 0; font-size: var(--font-xs); color: var(--text-1);
+    font-family: var(--font-sans); outline: none; min-width: 0;
+  }
+  .dock-search-input::placeholder { color: var(--text-3); }
+  .dock-search-clear {
+    background: none; border: none; color: var(--text-3); cursor: pointer;
+    display: flex; padding: 2px; border-radius: var(--radius-sm);
+    transition: color var(--transition-fast);
+  }
+  .dock-search-clear:hover { color: var(--text-1); }
 
   .dock-cards {
     display: flex;

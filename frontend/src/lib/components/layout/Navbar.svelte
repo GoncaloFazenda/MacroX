@@ -2,22 +2,31 @@
   import { page } from '$app/stores';
   import { auth } from '$lib/stores/auth.js';
   import { theme } from '$lib/stores/theme.js';
-  import { Sun, Moon, Cloud, LogOut, Menu, X } from 'lucide-svelte';
+  import { Sun, Moon, Cloud, LogOut, Menu, X, ChevronDown } from 'lucide-svelte';
 
   let mobileOpen = $state(false);
+  let libraryOpen = $state(false);
+  let libraryTimeout;
 
-  const navItems = [
+  const mainNav = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/foods', label: 'Foods' },
-    { href: '/meals', label: 'Meals' },
-    { href: '/planner/daily', label: 'Daily' },
-    { href: '/planner/weekly', label: 'Weekly' },
-    { href: '/templates', label: 'Templates' },
+    { href: '/day', label: 'My Day' },
+    { href: '/week', label: 'My Week' },
+  ];
+
+  const libraryItems = [
+    { href: '/library/foods-meals', label: 'Foods & Meals' },
+    { href: '/library/templates', label: 'Day Plans' },
   ];
 
   function isActive(href) {
     return $page.url.pathname.startsWith(href);
   }
+
+  const libraryActive = $derived(libraryItems.some(i => isActive(i.href)));
+
+  function openLibrary() { clearTimeout(libraryTimeout); libraryOpen = true; }
+  function closeLibrary() { libraryTimeout = setTimeout(() => libraryOpen = false, 150); }
 
   async function handleLogout() {
     await auth.logout();
@@ -27,10 +36,10 @@
 
 <nav class="navbar">
   <div class="navbar-inner">
-    <a href="/dashboard" class="logo">MacroX</a>
+    <a href="/dashboard" class="logo">Macro<span class="logo-x">X</span></a>
 
     <div class="nav-links" class:open={mobileOpen}>
-      {#each navItems as item}
+      {#each mainNav as item}
         <a
           href={item.href}
           class="nav-link"
@@ -38,6 +47,36 @@
           onclick={() => mobileOpen = false}
         >{item.label}</a>
       {/each}
+
+      <!-- Library dropdown (desktop) -->
+      <div
+        class="lib-wrap"
+        onmouseenter={openLibrary}
+        onmouseleave={closeLibrary}
+        role="navigation"
+      >
+        <button
+          class="nav-link lib-trigger"
+          class:active={libraryActive}
+          onclick={() => libraryOpen = !libraryOpen}
+        >
+          Library
+          <ChevronDown size={12} strokeWidth={1.5} class="lib-chevron {libraryOpen ? 'lib-chevron-open' : ''}" />
+        </button>
+
+        {#if libraryOpen}
+          <div class="lib-dropdown">
+            {#each libraryItems as item}
+              <a
+                href={item.href}
+                class="lib-item"
+                class:active={isActive(item.href)}
+                onclick={() => { libraryOpen = false; mobileOpen = false; }}
+              >{item.label}</a>
+            {/each}
+          </div>
+        {/if}
+      </div>
     </div>
 
     <div class="nav-actions">
@@ -90,11 +129,15 @@
   }
 
   .logo {
-    font-size: var(--font-lg);
+    font-size: 22px;
     font-weight: 700;
     color: var(--text-0);
     letter-spacing: -0.04em;
     flex-shrink: 0;
+  }
+
+  .logo-x {
+    color: var(--cal);
   }
 
   .nav-links {
@@ -111,6 +154,13 @@
     font-weight: 400;
     color: var(--text-2);
     transition: all var(--transition-fast);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
   }
 
   .nav-link:hover { color: var(--text-0); background: var(--bg-hover); }
@@ -119,6 +169,53 @@
     color: var(--text-0);
     background: var(--bg-3);
   }
+
+  /* Library dropdown */
+  .lib-wrap {
+    position: relative;
+  }
+
+  .lib-trigger {
+    user-select: none;
+  }
+
+  :global(.lib-chevron) {
+    transition: transform 150ms ease;
+    opacity: 0.5;
+  }
+  :global(.lib-chevron-open) {
+    transform: rotate(180deg);
+  }
+
+  .lib-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 180px;
+    background: var(--bg-modal);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-1);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    animation: dropIn 120ms ease;
+    z-index: 200;
+  }
+
+  @keyframes dropIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .lib-item {
+    display: block;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-sm);
+    color: var(--text-2);
+    transition: all var(--transition-fast);
+  }
+  .lib-item:hover { color: var(--text-0); background: var(--bg-hover); }
+  .lib-item.active { color: var(--text-0); background: var(--bg-3); }
 
   .nav-actions {
     display: flex;
@@ -153,9 +250,19 @@
       flex-direction: column;
       padding: var(--space-3);
       gap: var(--space-1);
+      z-index: 150;
     }
     .nav-links.open { display: flex; }
     .nav-link { width: 100%; padding: var(--space-2) var(--space-3); }
+    .lib-wrap { width: 100%; }
+    .lib-dropdown {
+      position: static;
+      box-shadow: none;
+      border: none;
+      padding: 0 0 0 var(--space-4);
+      background: transparent;
+      animation: none;
+    }
     .mobile-toggle { display: flex; }
     .user-name { display: none; }
   }

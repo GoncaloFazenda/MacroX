@@ -16,14 +16,14 @@
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 
   --font-xs: 0.8125rem;
-  --font-sm: 0.875rem;
-  --font-base: 1rem;
-  --font-md: 1.0625rem;
-  --font-lg: 1.125rem;
-  --font-xl: 1.375rem;
-  --font-2xl: 1.625rem;
-  --font-3xl: 2.25rem;
-  --font-4xl: 2.75rem;
+  --font-sm: 0.9375rem;
+  --font-base: 1.0625rem;
+  --font-md: 1.125rem;
+  --font-lg: 1.25rem;
+  --font-xl: 1.5rem;
+  --font-2xl: 1.75rem;
+  --font-3xl: 2.375rem;
+  --font-4xl: 3rem;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -66,13 +66,13 @@
   --surface-hover: rgba(255, 255, 255, 0.03);
 
   --text-0: #ffffff;
-  --text-1: #a3a3a3;
-  --text-2: #737373;
-  --text-3: #4f4f4f;
+  --text-1: #c0c0c0;
+  --text-2: #8a8a8a;
+  --text-3: #636363;
 
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --border-focus: rgba(153, 153, 153, 0.3);
+  --border: rgba(255, 255, 255, 0.18);
+  --border-strong: rgba(255, 255, 255, 0.28);
+  --border-focus: rgba(153, 153, 153, 0.4);
 
   --accent: #e4e4e7;
   --accent-muted: #a1a1aa;
@@ -115,9 +115,9 @@
   --text-2: #71717a;
   --text-3: #a1a1aa;
 
-  --border: rgba(0, 0, 0, 0.1);
-  --border-strong: rgba(0, 0, 0, 0.16);
-  --border-focus: rgba(82, 82, 91, 0.3);
+  --border: rgba(0, 0, 0, 0.16);
+  --border-strong: rgba(0, 0, 0, 0.24);
+  --border-focus: rgba(82, 82, 91, 0.4);
 
   --accent: #18181b;
   --accent-muted: #52525b;

@@ -5,6 +5,7 @@
   import { plannerStore } from '$lib/stores/planner.js';
   import { dayTemplateStore } from '$lib/stores/dayTemplates.js';
   import { onMount } from 'svelte';
+  import { page } from '$app/stores';
   import { formatDate, getPercentage } from '$lib/utils/macros.js';
   import { ChevronLeft, ChevronRight, X, Plus, Sparkles, GripVertical, Bookmark } from 'lucide-svelte';
   import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
@@ -13,7 +14,9 @@
   const FLIP_MS = 150;
   const ZONE = 'planner';
 
-  let currentDate = $state(formatDate(new Date()));
+  // Read ?date=YYYY-MM-DD from URL if present (used by weekly planner links)
+  const urlDate = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : null;
+  let currentDate = $state(urlDate || formatDate(new Date()));
   let search = $state('');
   let activeCategory = $state('All');
   let activeSlot = $state('breakfast');
@@ -380,7 +383,7 @@
           <div class="section-header"><Sparkles size={12} strokeWidth={1.5} /><span class="section-tag">Suggested for you</span></div>
           <div
             class="card-grid dnd-source"
-            use:dndzone={{ items: suggDndItems, flipDurationMs: FLIP_MS, type: ZONE, dropFromOthersDisabled: true }}
+            use:dndzone={{ items: suggDndItems, flipDurationMs: FLIP_MS, type: ZONE, dropFromOthersDisabled: true, dropTargetStyle: {} }}
             onconsider={handleSuggConsider}
             onfinalize={handleSuggFinalize}
           >
@@ -410,7 +413,7 @@
         <div class="section-header"><span class="section-tag">Foods</span><span class="section-count">{foodDndItems.length}</span></div>
         <div
           class="card-grid dnd-source"
-          use:dndzone={{ items: foodDndItems, flipDurationMs: FLIP_MS, type: ZONE, dropFromOthersDisabled: true }}
+          use:dndzone={{ items: foodDndItems, flipDurationMs: FLIP_MS, type: ZONE, dropFromOthersDisabled: true, dropTargetStyle: {} }}
           onconsider={handleFoodConsider}
           onfinalize={handleFoodFinalize}
         >
@@ -443,7 +446,6 @@
           <div class="section-header"><span class="section-tag">My Meals</span><span class="section-count">{mealDndItems.length}</span></div>
           <div
             class="card-grid dnd-source"
-            use:dndzone={{ items: mealDndItems, flipDurationMs: FLIP_MS, type: ZONE, dropFromOthersDisabled: true }}
             onconsider={handleMealConsider}
             onfinalize={handleMealFinalize}
           >
@@ -485,7 +487,7 @@
           <div
             class="slot-zone"
             class:slot-zone-empty={items.length === 0}
-            use:dndzone={{ items, flipDurationMs: FLIP_MS, type: ZONE, dropTargetClasses: ['slot-drop-highlight'] }}
+            use:dndzone={{ items, flipDurationMs: FLIP_MS, type: ZONE, dropTargetClasses: ['slot-drop-highlight'], dropTargetStyle: {} }}
             onconsider={(e) => handleSlotConsider(key, e)}
             onfinalize={(e) => handleSlotFinalize(key, e)}
           >
@@ -697,8 +699,7 @@
 
   /* Drop target highlight when dragging over */
   :global(.slot-drop-highlight) {
-    background: var(--accent-subtle) !important;
-    outline: 1.5px dashed var(--text-2) !important;
+    outline: 1.5px dashed var(--text-1) !important;
     outline-offset: -1px;
   }
 

@@ -52,45 +52,45 @@
 
 /* ─── Dark Theme ────────────────────────────────────────────────── */
 [data-theme="dark"] {
-  --bg-0: #0c0c0c;
+  --bg-0: #09090b;
   --bg-1: transparent;
   --bg-2: transparent;
-  --bg-3: #111111;
-  --bg-4: #080808;
-  --bg-hover: rgba(255, 255, 255, 0.04);
-  --bg-active: rgba(255, 255, 255, 0.07);
-  --bg-modal: #0e0e0e;
+  --bg-3: #1a1a1a;
+  --bg-4: #242424;
+  --bg-hover: rgba(244, 244, 248, 0.06);
+  --bg-active: rgba(244, 244, 248, 0.11);
+  --bg-modal: #131313;
 
   --surface: transparent;
-  --surface-border: rgba(255, 255, 255, 0.05);
-  --surface-hover: rgba(255, 255, 255, 0.03);
+  --surface-border: rgba(244, 244, 248, 0.12);
+  --surface-hover: rgba(244, 244, 248, 0.05);
 
-  --text-0: #ffffff;
-  --text-1: #c0c0c0;
-  --text-2: #8a8a8a;
-  --text-3: #636363;
+  --text-0: #fafafa;
+  --text-1: #c4c4c8;
+  --text-2: #909096;
+  --text-3: #6a6a70;
 
-  --border: rgba(255, 255, 255, 0.18);
-  --border-strong: rgba(255, 255, 255, 0.28);
-  --border-focus: rgba(153, 153, 153, 0.4);
+  --border: #4a4a50;
+  --border-strong: #6a6a70;
+  --border-focus: #8a8a90;
 
-  --accent: #e4e4e7;
-  --accent-muted: #a1a1aa;
-  --accent-subtle: rgba(161, 161, 170, 0.08);
+  --accent: #e8e8e8;
+  --accent-muted: #a0a0a0;
+  --accent-subtle: rgba(244, 244, 248, 0.06);
 
-  --cal: #c4a882;
-  --cal-bg: rgba(196, 168, 130, 0.08);
-  --pro: #9a9bb8;
-  --pro-bg: rgba(154, 155, 184, 0.08);
-  --carb: #7faa98;
-  --carb-bg: rgba(127, 170, 152, 0.08);
-  --fat: #b08a8f;
-  --fat-bg: rgba(176, 138, 143, 0.08);
+  --cal: #e3bd83;
+  --cal-bg: rgba(227, 189, 131, 0.10);
+  --pro: #adb6e0;
+  --pro-bg: rgba(173, 182, 224, 0.10);
+  --carb: #9ad4b4;
+  --carb-bg: rgba(154, 212, 180, 0.10);
+  --fat: #ddabab;
+  --fat-bg: rgba(221, 171, 171, 0.10);
 
-  --success: #7faa98;
-  --success-bg: rgba(127, 170, 152, 0.06);
-  --danger: #b07272;
-  --danger-bg: rgba(176, 114, 114, 0.06);
+  --success: #9ad4b4;
+  --success-bg: rgba(154, 212, 180, 0.08);
+  --danger: #dc9292;
+  --danger-bg: rgba(220, 146, 146, 0.08);
 
   color-scheme: dark;
 }

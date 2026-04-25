@@ -28,7 +28,9 @@
   let nextId = 1;
 
   // ── Undo & dirty tracking ──
-  let savedSnapshot = $state('');
+  let savedSnapshot = $state(JSON.stringify(
+    Array.from({ length: 7 }, () => ({ breakfast: [], lunch: [], dinner: [], snack: [] }))
+  ));
   let history = $state([]);
   const MAX_HISTORY = 30;
   const dirty = $derived(JSON.stringify(days.map(d => d.meals)) !== savedSnapshot);
@@ -928,7 +930,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: var(--space-8);
+    margin-bottom: var(--space-4);
   }
 
   .save-row {
@@ -936,7 +938,7 @@
     justify-content: flex-end;
     align-items: center;
     gap: var(--space-3);
-    margin-bottom: var(--space-8);
+    margin-bottom: var(--space-4);
   }
   .undo-btn {
     display: inline-flex;

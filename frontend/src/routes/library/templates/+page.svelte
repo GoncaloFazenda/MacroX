@@ -401,11 +401,11 @@
   .stats-strip {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--space-5);
     padding: var(--space-4) var(--space-5);
     margin-bottom: var(--space-5);
-    border: var(--border-width) solid var(--surface-border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     background: var(--bg-hover);
     flex-wrap: wrap;
   }

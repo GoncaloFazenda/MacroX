@@ -261,8 +261,10 @@
     const id = nextId++;
     slots[activeSlot] = [...slots[activeSlot], {
       id, type: 'food', refId: food._id, quantity: 100,
-      name: food.name, cal: food.calories,
-      protein: food.protein, netCarbs: food.netCarbs, fat: food.fat,
+      name: food.name, cal: Math.round(food.calories),
+      protein: Math.round(food.protein * 10) / 10,
+      netCarbs: Math.round(food.netCarbs * 10) / 10,
+      fat: Math.round(food.fat * 10) / 10,
     }];
     slots = { ...slots };
     flashItem(id);
@@ -274,7 +276,9 @@
     slots[activeSlot] = [...slots[activeSlot], {
       id, type: 'compositeMeal', refId: meal._id, quantity: 100,
       name: meal.name, cal: Math.round(tm.calories || 0),
-      protein: tm.protein || 0, netCarbs: tm.netCarbs || 0, fat: tm.fat || 0,
+      protein: Math.round((tm.protein || 0) * 10) / 10,
+      netCarbs: Math.round((tm.netCarbs || 0) * 10) / 10,
+      fat: Math.round((tm.fat || 0) * 10) / 10,
     }];
     slots = { ...slots };
     flashItem(id);
@@ -302,8 +306,10 @@
         return {
           id, type: 'food', refId: item._id,
           name: food?.name || 'Unknown', quantity: 100,
-          cal: food?.calories || 0, protein: food?.protein || 0,
-          netCarbs: food?.netCarbs || 0, fat: food?.fat || 0,
+          cal: Math.round(food?.calories || 0),
+          protein: Math.round((food?.protein || 0) * 10) / 10,
+          netCarbs: Math.round((food?.netCarbs || 0) * 10) / 10,
+          fat: Math.round((food?.fat || 0) * 10) / 10,
         };
       }
       if (sid.startsWith('sm-')) {
@@ -314,8 +320,10 @@
         return {
           id, type: 'compositeMeal', refId: item._id,
           name: meal?.name || 'Unknown', quantity: 100,
-          cal: Math.round(tm.calories || 0), protein: tm.protein || 0,
-          netCarbs: tm.netCarbs || 0, fat: tm.fat || 0,
+          cal: Math.round(tm.calories || 0),
+          protein: Math.round((tm.protein || 0) * 10) / 10,
+          netCarbs: Math.round((tm.netCarbs || 0) * 10) / 10,
+          fat: Math.round((tm.fat || 0) * 10) / 10,
         };
       }
       return item;

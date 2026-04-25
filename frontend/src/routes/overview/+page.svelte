@@ -7,6 +7,7 @@
   import { getPercentage, formatDate, calculateMacros } from '$lib/utils/macros.js';
   import { onMount } from 'svelte';
   import { Settings } from 'lucide-svelte';
+  import AnimatedNumber from '$lib/components/ui/AnimatedNumber.svelte';
 
   let today = formatDate(new Date());
   let mounted = $state(false);
@@ -153,7 +154,9 @@
         </div>
 
         <div class="mc-value">
-          <span class="mc-num mono">{macro.value}</span>
+          <span class="mc-num mono">
+            <AnimatedNumber value={macro.value} decimals={macro.integer ? 0 : 1} duration={900} />
+          </span>
           {#if macro.enabled}
             <span class="mc-unit">/ {macro.goal} {macro.unit}</span>
           {:else}
@@ -197,14 +200,16 @@
               {#each weekHistory as day}
                 {@const raw = macro.goal ? (day.totals[macro.key] / macro.goal) * 100 : 0}
                 {@const pct = Math.min(100, raw)}
+                {@const dayValue = macro.integer ? Math.round(day.totals[macro.key]) : Math.round(day.totals[macro.key] * 10) / 10}
                 <div class="tc-bar-col" class:tc-today={day.isToday}>
-                  <div class="tc-bar-track">
+                  <div class="tc-bar-track" title={day.hasData ? `${dayValue} ${macro.unit} · ${Math.round(raw)}%` : 'No data'}>
                     {#if day.hasData}
                       <div
                         class="tc-bar-fill"
                         class:tc-bar-over={raw > 100}
                         style="height: {mounted ? pct : 0}%; background: {macro.color}"
                       ></div>
+                      <span class="tc-tip" style="color: {macro.color}">{dayValue}<span class="tc-tip-pct">{Math.round(raw)}%</span></span>
                     {/if}
                   </div>
                   <span class="tc-day" class:tc-day-today={day.isToday}>{day.letter}</span>
@@ -414,22 +419,73 @@
   }
 
   .tc-bar-track {
+    position: relative;
     width: 100%;
     height: 48px;
     background: var(--bg-3);
     border-radius: var(--radius-sm);
     display: flex;
     align-items: flex-end;
+    overflow: visible;
+    cursor: default;
+    transition: transform var(--transition-fast);
+  }
+  .tc-bar-track:hover {
+    transform: scaleY(1.04);
+  }
+  .tc-bar-track::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-sm);
     overflow: hidden;
+    pointer-events: none;
   }
 
   .tc-bar-fill {
     width: 100%;
     border-radius: var(--radius-sm);
-    transition: height 900ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: height 900ms cubic-bezier(0.4, 0, 0.2, 1), filter var(--transition-fast);
+  }
+  .tc-bar-track:hover .tc-bar-fill {
+    filter: brightness(1.18);
   }
   .tc-bar-fill.tc-bar-over {
     box-shadow: inset 0 2px 0 0 var(--text-0);
+  }
+
+  /* Tooltip on hover — shows exact value */
+  .tc-tip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 3px 7px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-modal);
+    border: var(--border-width) solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease, transform 140ms ease;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+  .tc-tip-pct {
+    font-size: 9px;
+    color: var(--text-3);
+    font-weight: 500;
+  }
+  .tc-bar-track:hover .tc-tip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 
   .tc-day {

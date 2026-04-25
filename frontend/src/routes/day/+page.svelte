@@ -12,6 +12,7 @@
   import { X, Plus, Sparkles, GripVertical, Bookmark, ArrowLeft, Pencil, Check, Trash2, Undo2, Copy } from 'lucide-svelte';
   import DateNav from '$lib/components/ui/DateNav.svelte';
   import SaveButton from '$lib/components/ui/SaveButton.svelte';
+  import AnimatedNumber from '$lib/components/ui/AnimatedNumber.svelte';
   import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
   import { flip } from 'svelte/animate';
 
@@ -591,24 +592,24 @@
   <!-- Macro Summary -->
   <div class="macro-summary animate-slide-up stagger-2 ">
     <div class="macro-stat">
-      <div class="ms-top"><span class="ms-label">Calories</span><span class="ms-val mono">{totals.cal} {goals.calories != null ? `/ ${goals.calories}` : ''} <span class="ms-unit">kcal</span></span></div>
+      <div class="ms-top"><span class="ms-label">Calories</span><span class="ms-val mono"><AnimatedNumber value={totals.cal} duration={700} /> {goals.calories != null ? `/ ${goals.calories}` : ''} <span class="ms-unit">kcal</span></span></div>
       <div class="progress-track"><div class="progress-fill" style="width: {mounted && goals.calories ? Math.min(getPercentage(totals.cal, goals.calories), 100) : 0}%; background: var(--cal)"></div></div>
     </div>
     {#if goals.protein != null}
     <div class="macro-stat">
-      <div class="ms-top"><span class="ms-label">Protein</span><span class="ms-val mono">{totals.protein} / {goals.protein} <span class="ms-unit">g</span></span></div>
+      <div class="ms-top"><span class="ms-label">Protein</span><span class="ms-val mono"><AnimatedNumber value={totals.protein} decimals={1} duration={700} /> / {goals.protein} <span class="ms-unit">g</span></span></div>
       <div class="progress-track"><div class="progress-fill" style="width: {mounted ? Math.min(getPercentage(totals.protein, goals.protein), 100) : 0}%; background: var(--pro)"></div></div>
     </div>
     {/if}
     {#if goals.netCarbs != null}
     <div class="macro-stat">
-      <div class="ms-top"><span class="ms-label">Net Carbs</span><span class="ms-val mono">{totals.netCarbs} / {goals.netCarbs} <span class="ms-unit">g</span></span></div>
+      <div class="ms-top"><span class="ms-label">Net Carbs</span><span class="ms-val mono"><AnimatedNumber value={totals.netCarbs} decimals={1} duration={700} /> / {goals.netCarbs} <span class="ms-unit">g</span></span></div>
       <div class="progress-track"><div class="progress-fill" style="width: {mounted ? Math.min(getPercentage(totals.netCarbs, goals.netCarbs), 100) : 0}%; background: var(--carb)"></div></div>
     </div>
     {/if}
     {#if goals.fat != null}
     <div class="macro-stat">
-      <div class="ms-top"><span class="ms-label">Fat</span><span class="ms-val mono">{totals.fat} / {goals.fat} <span class="ms-unit">g</span></span></div>
+      <div class="ms-top"><span class="ms-label">Fat</span><span class="ms-val mono"><AnimatedNumber value={totals.fat} decimals={1} duration={700} /> / {goals.fat} <span class="ms-unit">g</span></span></div>
       <div class="progress-track"><div class="progress-fill" style="width: {mounted ? Math.min(getPercentage(totals.fat, goals.fat), 100) : 0}%; background: var(--fat)"></div></div>
     </div>
     {/if}
@@ -828,9 +829,11 @@
 />
 
 {#if toast.visible}
-  <div class="day-toast-wrap">
-    <div class="day-toast day-toast-{toast.type}" role="alert">
-      <Check size={14} strokeWidth={2} />
+  <div class="toast-container">
+    <div class="app-toast app-toast-{toast.type}" role="alert">
+      <span class="app-toast-icon">
+        <Check size={16} strokeWidth={2.5} />
+      </span>
       <span>{toast.message}</span>
     </div>
   </div>
@@ -949,24 +952,6 @@
   }
   .revert-btn:active { transform: scale(0.98); }
 
-  /* ── Toast ── */
-  .day-toast-wrap {
-    position: fixed; bottom: var(--space-4); right: var(--space-4); z-index: 2000;
-  }
-  .day-toast {
-    display: flex; align-items: center; gap: var(--space-3);
-    padding: var(--space-3) var(--space-5);
-    border-radius: var(--radius-md);
-    font-size: var(--font-sm); font-weight: 500;
-    border: var(--border-width) solid var(--border);
-    background: var(--bg-modal);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    animation: slideUp 200ms ease both;
-  }
-  .day-toast-success { color: var(--success); border-color: var(--success); }
-  .day-toast-error { color: var(--danger); border-color: var(--danger); }
-
-
   /* ── Macro Summary ── */
   .macro-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-8); padding-top: var(--space-4);padding-bottom: var(--space-5);  }
   .macro-stat { display: flex; flex-direction: column; gap: var(--space-2); }
@@ -1038,9 +1023,20 @@
     gap: var(--space-2);
     cursor: grab;
     user-select: none;
+    transition: border-color var(--transition-fast), background var(--transition-fast),
+                transform var(--transition-fast), box-shadow var(--transition-fast);
   }
-  .food-card-draggable:hover { border-color: var(--border-strong); background: var(--bg-hover); }
-  .food-card-draggable:active { cursor: grabbing; }
+  .food-card-draggable:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  }
+  .food-card-draggable:active {
+    cursor: grabbing;
+    transform: translateY(0) scale(0.99);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+  }
 
   .fc-grip { color: var(--text-3); opacity: 0.35; flex-shrink: 0; display: flex; transition: opacity var(--transition-fast); }
   .food-card-draggable:hover .fc-grip { opacity: 0.7; }
@@ -1079,9 +1075,9 @@
 
   .meal-slot {
     border: var(--border-width) solid var(--border); border-radius: var(--radius-md);
-    padding: var(--space-4) var(--space-5); transition: border-color var(--transition-base);
+    padding: var(--space-4) var(--space-5);
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
   }
-  .slot-active-target { border-color: var(--border-strong); }
 
   .slot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); }
   .slot-left { display: flex; align-items: baseline; gap: var(--space-2); }
@@ -1100,10 +1096,19 @@
     min-height: 56px;
   }
 
-  /* Drop target highlight when dragging over */
+  /* Drop target highlight when dragging over — pulsing accent */
   :global(.slot-drop-highlight) {
     outline: 1.5px dashed var(--text-1) !important;
     outline-offset: -1px;
+    animation: slotDropPulse 1.2s ease-in-out infinite !important;
+  }
+  @keyframes slotDropPulse {
+    0%, 100% { background: var(--accent-subtle); }
+    50%      { background: var(--bg-active); }
+  }
+  .slot-active-target {
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 1px var(--accent-subtle);
   }
 
   .slot-item {
@@ -1111,17 +1116,27 @@
     padding: var(--space-3); border: var(--border-width) solid var(--border);
     border-radius: var(--radius-sm); cursor: grab; transition: all var(--transition-fast);
   }
-  .slot-item:hover { background: var(--bg-hover); border-color: var(--border-strong); }
-  .slot-item:active { cursor: grabbing; }
+  .slot-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  }
+  .slot-item:active { cursor: grabbing; transform: translateY(0) scale(0.99); }
 
-  /* Flash animation when item is added */
+  /* Flash + bounce when item is added (drop or click) */
   .slot-item-flash {
-    animation: itemFlash 400ms ease;
+    animation: itemFlash 480ms ease, itemBounce 380ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   @keyframes itemFlash {
-    0% { background: var(--accent-subtle); opacity: 0.6; }
-    50% { background: var(--accent-subtle); opacity: 1; }
+    0%   { background: var(--accent-subtle); opacity: 0.6; }
+    40%  { background: var(--accent-subtle); opacity: 1; }
     100% { background: transparent; opacity: 1; }
+  }
+  @keyframes itemBounce {
+    0%   { transform: scale(0.92); }
+    60%  { transform: scale(1.025); }
+    100% { transform: scale(1); }
   }
 
   /* Shadow items in slots during reorder */

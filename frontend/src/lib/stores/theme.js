@@ -18,8 +18,13 @@ function createThemeStore() {
       })();
       set(newTheme);
       if (browser) {
+        document.body.classList.add('theme-transitioning');
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('macrox-theme', newTheme);
+        clearTimeout(window.__macroxThemeTimeout);
+        window.__macroxThemeTimeout = setTimeout(() => {
+          document.body.classList.remove('theme-transitioning');
+        }, 420);
       }
     },
 

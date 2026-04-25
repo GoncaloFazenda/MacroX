@@ -380,12 +380,14 @@
 <!-- Toast -->
 {#if toast.visible}
   <div class="toast-container">
-    <div class="toast toast-{toast.type}" role="alert">
-      {#if toast.type === 'success'}
-        <Check size={14} strokeWidth={2} />
-      {:else}
-        <AlertTriangle size={14} strokeWidth={1.5} />
-      {/if}
+    <div class="app-toast app-toast-{toast.type}" role="alert">
+      <span class="app-toast-icon">
+        {#if toast.type === 'success'}
+          <Check size={16} strokeWidth={2.5} />
+        {:else}
+          <AlertTriangle size={16} strokeWidth={2} />
+        {/if}
+      </span>
       <span>{toast.message}</span>
     </div>
   </div>
@@ -659,19 +661,6 @@
   .modal-warn :global(svg) { flex-shrink: 0; margin-top: 2px; color: var(--danger); }
 
   .modal-actions { display: flex; gap: var(--space-3); justify-content: flex-end; }
-
-  /* ── Toast (uses global .toast-container) ── */
-  .toast {
-    display: flex; align-items: center; gap: var(--space-3);
-    padding: var(--space-3) var(--space-5); border-radius: var(--radius-md);
-    font-size: var(--font-sm); font-weight: 500;
-    border: var(--border-width) solid var(--border);
-    background: var(--bg-modal);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    animation: slideUp 200ms ease both;
-  }
-  .toast-success { color: var(--success); border-color: var(--success); }
-  .toast-error   { color: var(--danger);  border-color: var(--danger); }
 
   @media (max-width: 640px) {
     .top-bar { flex-direction: column; gap: var(--space-3); }

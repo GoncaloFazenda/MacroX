@@ -906,12 +906,14 @@
 <!-- Toast -->
 {#if toast.visible}
   <div class="toast-container">
-    <div class="wk-toast wk-toast-{toast.type}" role="alert">
-      {#if toast.type === 'success'}
-        <Check size={14} strokeWidth={2} />
-      {:else}
-        <AlertTriangle size={14} strokeWidth={1.5} />
-      {/if}
+    <div class="app-toast app-toast-{toast.type}" role="alert">
+      <span class="app-toast-icon">
+        {#if toast.type === 'success'}
+          <Check size={16} strokeWidth={2.5} />
+        {:else}
+          <AlertTriangle size={16} strokeWidth={2} />
+        {/if}
+      </span>
       <span>{toast.message}</span>
     </div>
   </div>
@@ -1012,6 +1014,11 @@
   .day-col-drop {
     border-color: var(--text-1);
     border-style: dashed;
+    animation: dayColDropPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes dayColDropPulse {
+    0%, 100% { background: var(--accent-subtle); }
+    50%      { background: var(--bg-active); }
   }
   .day-col-selectable {
     cursor: pointer;
@@ -1396,11 +1403,13 @@
   .tpl-card:hover {
     border-color: var(--border-strong);
     background: var(--bg-hover);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   }
   .tpl-card:active {
     cursor: grabbing;
-    transform: translateY(0);
+    transform: translateY(0) scale(0.99);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.20);
   }
   .tpl-selected {
     border-color: var(--text-2);
@@ -1589,29 +1598,6 @@
     display: flex;
     gap: var(--space-3);
     justify-content: flex-end;
-  }
-
-  /* ── Toast ── */
-  .wk-toast {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-5);
-    border-radius: var(--radius-md);
-    font-size: var(--font-sm);
-    font-weight: 500;
-    border: var(--border-width) solid var(--border);
-    background: var(--bg-modal);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    animation: slideUp 200ms ease both;
-  }
-  .wk-toast-success {
-    color: var(--success);
-    border-color: var(--success);
-  }
-  .wk-toast-error {
-    color: var(--danger);
-    border-color: var(--danger);
   }
 
   @media (max-width: 1024px) {

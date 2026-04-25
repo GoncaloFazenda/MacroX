@@ -843,7 +843,10 @@
 <!-- Toast -->
 {#if toast.visible}
   <div class="toast-container">
-    <div class="fm-toast fm-toast-{toast.type}" role="alert">
+    <div class="app-toast app-toast-{toast.type}" role="alert">
+      <span class="app-toast-icon">
+        <Check size={16} strokeWidth={2.5} />
+      </span>
       <span>{toast.message}</span>
     </div>
   </div>
@@ -1453,20 +1456,6 @@
     font-size: 10px; color: var(--text-3);
     text-transform: uppercase; letter-spacing: 0.06em;
   }
-
-  /* ─── Toast ─── */
-  .fm-toast {
-    display: flex; align-items: center; gap: var(--space-3);
-    padding: var(--space-3) var(--space-5);
-    border-radius: var(--radius-md);
-    font-size: var(--font-sm); font-weight: 500;
-    border: var(--border-width) solid var(--border);
-    background: var(--bg-modal);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    animation: slideUp 200ms ease both;
-  }
-  .fm-toast-success { color: var(--success); border-color: var(--success); }
-  .fm-toast-error { color: var(--danger); border-color: var(--danger); }
 
   /* ─── Responsive ─── */
   @media (max-width: 1024px) {

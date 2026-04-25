@@ -205,6 +205,23 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* During theme switch, smoothly transition surfaces, borders, and text everywhere
+   without slowing down hover/focus micro-interactions. The class is toggled by the
+   theme store for ~400ms whenever the active theme changes. */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: background-color var(--transition-slow) ease,
+              background var(--transition-slow) ease,
+              border-color var(--transition-slow) ease,
+              outline-color var(--transition-slow) ease,
+              color var(--transition-slow) ease,
+              fill var(--transition-slow) ease,
+              stroke var(--transition-slow) ease,
+              box-shadow var(--transition-slow) ease !important;
+}
+
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -335,6 +352,7 @@ a:hover {
   outline: none;
   border-color: var(--text-2);
   background: transparent;
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 .input::placeholder {
@@ -413,6 +431,55 @@ a:hover {
   }
 }
 
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes dropPulse {
+  0%, 100% {
+    background: var(--accent-subtle);
+  }
+  50% {
+    background: var(--bg-active);
+  }
+}
+
+@keyframes successPop {
+  0% { transform: scale(0.6); opacity: 0; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes logoXIn {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.4) rotate(-12deg);
+    letter-spacing: 0.4em;
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.18) rotate(2deg);
+    letter-spacing: -0.02em;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+    letter-spacing: -0.04em;
+  }
+}
+
+@keyframes logoMacroIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .animate-fade-in {
   animation: fadeIn 300ms ease both;
 }
@@ -451,9 +518,35 @@ a:hover {
 
 /* ─── Drag & Drop ───────────────────────────────────────────────── */
 .dnd-drop-target {
-  outline: 1px dashed var(--text-2);
+  outline: 1.5px dashed var(--text-2);
   outline-offset: -1px;
   background: var(--accent-subtle);
+  animation: dropPulse 1.4s ease-in-out infinite;
+}
+
+/* Lift effect on draggable items when hovered (anticipates the grab) */
+.dnd-liftable {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+              border-color var(--transition-fast), background var(--transition-fast);
+}
+.dnd-liftable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.dnd-liftable:active {
+  transform: translateY(0) scale(0.99);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  cursor: grabbing;
+}
+
+/* Bounce-in for items just dropped into a slot */
+@keyframes dropBounce {
+  0%   { transform: scale(0.94); opacity: 0.7; }
+  60%  { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.dnd-drop-bounce {
+  animation: dropBounce 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ─── Layout ────────────────────────────────────────────────────── */
@@ -508,12 +601,68 @@ a:hover {
 /* ─── Toast ─────────────────────────────────────────────────────── */
 .toast-container {
   position: fixed;
-  bottom: var(--space-4);
-  right: var(--space-4);
+  bottom: var(--space-6);
+  right: var(--space-6);
   z-index: 2000;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  pointer-events: none;
+}
+.toast-container > * { pointer-events: auto; }
+
+/* Premium toast — bigger, with strong shadow, accent strip, slide-in from right */
+.app-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 280px;
+  max-width: 420px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-base);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  background: var(--bg-modal);
+  border: var(--border-width) solid var(--border-strong);
+  color: var(--text-0);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28),
+              0 2px 8px rgba(0, 0, 0, 0.16);
+  animation: slideInRight 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  position: relative;
+  overflow: hidden;
+}
+.app-toast::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--text-1);
+}
+.app-toast-success { color: var(--text-0); }
+.app-toast-success::before { background: var(--success); }
+.app-toast-error { color: var(--text-0); }
+.app-toast-error::before { background: var(--danger); }
+
+.app-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  animation: successPop 360ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.app-toast-success .app-toast-icon {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.app-toast-error .app-toast-icon {
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 /* ─── Empty State ───────────────────────────────────────────────── */
@@ -530,21 +679,34 @@ a:hover {
 
 /* ─── Skeleton ──────────────────────────────────────────────────── */
 .skeleton {
+  position: relative;
   background: var(--bg-3);
   border-radius: var(--radius-md);
-  animation: pulse 1.5s ease-in-out infinite;
+  overflow: hidden;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--bg-hover) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: shimmer 1.8s ease-in-out infinite;
 }
 
 @keyframes pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.32; }
+}
 
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-
-  50% {
-    opacity: 0.3;
-  }
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* ─── Number styling ────────────────────────────────────────────── */

@@ -23,7 +23,9 @@
 <div class="auth-page">
   <div class="auth-card animate-scale-in">
     <div class="auth-header">
-      <h1 class="auth-logo">MacroX</h1>
+      <h1 class="auth-logo">
+        <span class="auth-logo-macro">Macro</span><span class="auth-logo-x">X</span>
+      </h1>
       <p class="auth-sub">Create your account</p>
     </div>
 
@@ -68,8 +70,30 @@
   .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
   .auth-card { width: 100%; max-width: 360px; background: var(--bg-1); border: var(--border-width) solid var(--border); border-radius: var(--radius-xl); padding: var(--space-8); }
   .auth-header { text-align: center; margin-bottom: var(--space-8); }
-  .auth-logo { font-size: var(--font-xl); font-weight: 700; letter-spacing: -0.04em; margin-bottom: var(--space-2); }
-  .auth-sub { font-size: var(--font-sm); color: var(--text-2); }
+  .auth-logo {
+    font-size: var(--font-3xl);
+    font-weight: 700;
+    color: var(--text-0);
+    letter-spacing: -0.04em;
+    margin-bottom: var(--space-3);
+    display: inline-flex;
+    align-items: baseline;
+  }
+  .auth-logo-macro {
+    display: inline-block;
+    animation: logoMacroIn 500ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+  }
+  .auth-logo-x {
+    display: inline-block;
+    color: var(--cal);
+    transform-origin: 50% 70%;
+    animation: logoXIn 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 750ms both;
+  }
+  .auth-sub {
+    font-size: var(--font-sm);
+    color: var(--text-2);
+    animation: logoMacroIn 500ms ease 1100ms both;
+  }
   .auth-form { display: flex; flex-direction: column; gap: var(--space-4); }
   .auth-error { padding: var(--space-3); background: var(--danger-bg); border: var(--border-width) solid rgba(201,112,112,0.15); border-radius: var(--radius-md); color: var(--danger); font-size: var(--font-sm); }
   .field { display: flex; flex-direction: column; }

@@ -4,10 +4,28 @@
   import { mealStore } from '$lib/stores/meals.js';
   import { plannerStore } from '$lib/stores/planner.js';
   import { onMount } from 'svelte';
-  import { Trash2, ChevronRight, Search, CalendarCheck, Pencil, X, Check, AlertTriangle } from 'lucide-svelte';
+  import { Trash2, Plus, Search, CalendarCheck, Pencil, X, Check, AlertTriangle, ArrowUp, ArrowDown } from 'lucide-svelte';
 
   let loading = $state(true);
   let searchQuery = $state('');
+
+  // Sort
+  let sortKey = $state('recent'); // 'recent' | 'name' | 'calories' | 'protein'
+  let sortDir = $state('desc');
+  const sortOptions = [
+    { key: 'recent', label: 'Recent' },
+    { key: 'name', label: 'Name' },
+    { key: 'calories', label: 'Calories' },
+    { key: 'protein', label: 'Protein' },
+  ];
+  function selectSort(key) {
+    if (sortKey === key) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortKey = key;
+      sortDir = key === 'name' ? 'asc' : 'desc';
+    }
+  }
 
   // Modal
   let confirmModal = $state({ open: false, template: null, hasExisting: false });
@@ -50,16 +68,41 @@
 
   const filteredTemplates = $derived.by(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return $dayTemplateStore.templates;
-    return $dayTemplateStore.templates.filter(t => {
-      if (t.name.toLowerCase().includes(q)) return true;
-      for (const meal of t.meals || []) {
-        for (const item of meal.items || []) {
-          if (getName(item).toLowerCase().includes(q)) return true;
+    let list = $dayTemplateStore.templates.slice();
+    if (q) {
+      list = list.filter(t => {
+        if (t.name.toLowerCase().includes(q)) return true;
+        for (const meal of t.meals || []) {
+          for (const item of meal.items || []) {
+            if (getName(item).toLowerCase().includes(q)) return true;
+          }
         }
-      }
-      return false;
+        return false;
+      });
+    }
+    list.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortKey === 'calories') cmp = (a.totalMacros?.calories || 0) - (b.totalMacros?.calories || 0);
+      else if (sortKey === 'protein') cmp = (a.totalMacros?.protein || 0) - (b.totalMacros?.protein || 0);
+      else cmp = new Date(a.updatedAt || a.createdAt || 0) - new Date(b.updatedAt || b.createdAt || 0);
+      return sortDir === 'asc' ? cmp : -cmp;
     });
+    return list;
+  });
+
+  const libraryStats = $derived.by(() => {
+    const tpls = $dayTemplateStore.templates;
+    if (!tpls.length) return null;
+    const totalCal = tpls.reduce((s, t) => s + (t.totalMacros?.calories || 0), 0);
+    const totalPro = tpls.reduce((s, t) => s + (t.totalMacros?.protein || 0), 0);
+    const totalItems = tpls.reduce((s, t) => s + getTotalFoods(t), 0);
+    return {
+      count: tpls.length,
+      avgCal: Math.round(totalCal / tpls.length),
+      avgPro: Math.round(totalPro / tpls.length),
+      avgItems: (totalItems / tpls.length).toFixed(1).replace(/\.0$/, ''),
+    };
   });
 
   // Use Today
@@ -127,7 +170,7 @@
       <h1 class="page-title">Day Plans</h1>
       <p class="page-subtitle">Your saved full-day meal plans</p>
     </div>
-    <a href="/day" class="btn btn-secondary btn-sm">Create in My Day <ChevronRight size={14} /></a>
+    <a href="/day?newPlan=1" class="btn btn-primary btn-sm"><Plus size={14} strokeWidth={1.5} />New Day Plan</a>
   </div>
 
   {#if loading}
@@ -139,23 +182,67 @@
     </div>
   {:else if $dayTemplateStore.templates.length === 0}
     <div class="empty-state">
-      <p class="empty-state-text">No day plans yet. <a href="/day" class="empty-link">Create one from My Day</a></p>
+      <p class="empty-state-text">No day plans yet.</p>
+      <a href="/day?newPlan=1" class="btn btn-primary btn-sm" style="margin-top: var(--space-3);"><Plus size={14} strokeWidth={1.5} />New Day Plan</a>
     </div>
   {:else}
-    <!-- Search -->
-    <div class="search-box animate-slide-up stagger-1">
-      <Search size={14} strokeWidth={1.5} />
-      <input
-        class="search-input"
-        type="text"
-        placeholder="Search by name or food…"
-        bind:value={searchQuery}
-      />
-      {#if searchQuery}
-        <button class="search-clear" onclick={() => searchQuery = ''} aria-label="Clear search">
-          <X size={13} />
-        </button>
-      {/if}
+    <!-- Library stats strip -->
+    {#if libraryStats}
+      <div class="stats-strip animate-slide-up stagger-1">
+        <div class="stat-cell">
+          <span class="stat-n mono">{libraryStats.count}</span>
+          <span class="stat-u">{libraryStats.count === 1 ? 'plan' : 'plans'}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-cell">
+          <span class="stat-n mono" style="color: var(--cal)">{libraryStats.avgCal.toLocaleString()}</span>
+          <span class="stat-u">avg kcal</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-cell">
+          <span class="stat-n mono" style="color: var(--pro)">{libraryStats.avgPro}<span class="stat-suffix">g</span></span>
+          <span class="stat-u">avg protein</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-cell">
+          <span class="stat-n mono">{libraryStats.avgItems}</span>
+          <span class="stat-u">avg items</span>
+        </div>
+      </div>
+    {/if}
+
+    <!-- Filter row: sort chips left, search right -->
+    <div class="filter-row animate-slide-up stagger-2">
+      <div class="chips">
+        <span class="chips-prefix">Sort</span>
+        {#each sortOptions as opt}
+          <button
+            class="chip chip-sort"
+            class:active={sortKey === opt.key}
+            onclick={() => selectSort(opt.key)}
+            type="button"
+          >
+            <span>{opt.label}</span>
+            {#if sortKey === opt.key}
+              {#if sortDir === 'asc'}<ArrowUp size={9} strokeWidth={2} />{:else}<ArrowDown size={9} strokeWidth={2} />{/if}
+            {/if}
+          </button>
+        {/each}
+      </div>
+      <div class="search-box">
+        <Search size={14} strokeWidth={1.5} />
+        <input
+          class="search-input"
+          type="text"
+          placeholder="Search by name or food…"
+          bind:value={searchQuery}
+        />
+        {#if searchQuery}
+          <button class="search-clear" onclick={() => searchQuery = ''} aria-label="Clear search">
+            <X size={13} />
+          </button>
+        {/if}
+      </div>
     </div>
 
     {#if filteredTemplates.length === 0}
@@ -163,7 +250,27 @@
         <p class="empty-state-text">No day plans match "{searchQuery}"</p>
       </div>
     {:else}
-      <div class="grid animate-slide-up stagger-2">
+      <div class="grid animate-slide-up stagger-3">
+        <a class="new-tile" href="/day?newPlan=1" aria-label="Create a new day plan">
+          <span class="new-tile-corner new-tile-corner-tl"></span>
+          <span class="new-tile-corner new-tile-corner-tr"></span>
+          <span class="new-tile-corner new-tile-corner-bl"></span>
+          <span class="new-tile-corner new-tile-corner-br"></span>
+          <div class="new-tile-icon">
+            <Plus size={28} strokeWidth={1} />
+          </div>
+          <div class="new-tile-text">
+            <span class="new-tile-label">New Day Plan</span>
+            <span class="new-tile-sub">Start a plan from scratch</span>
+          </div>
+          <span class="new-tile-cta">
+            Create
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14"/>
+              <path d="m12 5 7 7-7 7"/>
+            </svg>
+          </span>
+        </a>
         {#each filteredTemplates as t, idx}
           <div class="card" style="animation-delay: {idx * 25}ms">
             <!-- Header -->
@@ -217,9 +324,9 @@
               <button class="btn btn-primary btn-sm card-action-btn" onclick={() => openUseToday(t)}>
                 <CalendarCheck size={13} strokeWidth={1.5} />Use Today
               </button>
-              <button class="btn btn-ghost btn-sm card-action-btn" disabled>
+              <a class="btn btn-ghost btn-sm card-action-btn" href="/day?templateId={t._id}">
                 <Pencil size={13} strokeWidth={1.5} />Edit
-              </button>
+              </a>
             </div>
           </div>
         {/each}
@@ -287,22 +394,100 @@
 <style>
   /* ── Layout ── */
   .top-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-5); }
-  .empty-link { color: var(--text-1); text-decoration: underline; }
-  .empty-link:hover { color: var(--text-0); }
 
   .grid-sk { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--space-4); }
+
+  /* ── Stats strip ── */
+  .stats-strip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-5);
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-hover);
+    flex-wrap: wrap;
+  }
+  .stat-cell {
+    display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+    min-width: 0;
+  }
+  .stat-n {
+    font-size: var(--font-xl);
+    font-weight: 600;
+    color: var(--text-0);
+    letter-spacing: -0.025em;
+    line-height: 1;
+  }
+  .stat-suffix {
+    font-size: var(--font-md);
+    font-weight: 500;
+    color: var(--text-2);
+    margin-left: 1px;
+  }
+  .stat-u {
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+  }
+  .stat-divider {
+    width: 1px;
+    align-self: stretch;
+    background: var(--border);
+    opacity: 0.6;
+  }
+
+  /* ── Filter row (sort chips + search) ── */
+  .filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+    flex-wrap: wrap;
+  }
+  .chips {
+    display: flex; gap: var(--space-1); flex-wrap: wrap;
+    flex: 1 1 auto; min-width: 0;
+    align-items: center;
+  }
+  .chips-prefix {
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    margin-right: var(--space-2);
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px;
+    background: transparent;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-full);
+    font-size: var(--font-sm); font-weight: 400;
+    color: var(--text-2); cursor: pointer; font-family: var(--font-sans);
+    transition: all var(--transition-fast);
+    letter-spacing: -0.01em;
+  }
+  .chip:hover { border-color: var(--border-strong); color: var(--text-0); }
+  .chip.active { background: var(--text-0); color: var(--bg-0); border-color: var(--text-0); }
 
   /* ── Search ── */
   .search-box {
     display: flex; align-items: center; gap: var(--space-2);
     border: var(--border-width) solid var(--border); border-radius: var(--radius-md);
-    padding: 0 var(--space-3); max-width: 320px; color: var(--text-3);
-    margin-bottom: var(--space-5); transition: border-color var(--transition-fast);
+    padding: 0 var(--space-3); width: 240px; color: var(--text-3);
+    transition: border-color var(--transition-fast);
+    flex-shrink: 0;
   }
   .search-box:focus-within { border-color: var(--text-2); }
   .search-input {
     background: none; border: none; color: var(--text-0); font-family: var(--font-sans);
-    font-size: var(--font-sm); padding: 8px 0; width: 100%; outline: none;
+    font-size: var(--font-sm); padding: 7px 0; flex: 1; outline: none; min-width: 0;
   }
   .search-input::placeholder { color: var(--text-3); }
   .search-clear {
@@ -310,6 +495,93 @@
     display: flex; padding: 2px; border-radius: var(--radius-sm);
   }
   .search-clear:hover { color: var(--text-1); }
+
+  /* ── New Day Plan tile — minimal, with corner brackets that frame the canvas ── */
+  .new-tile {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: var(--space-4);
+    padding: var(--space-6) var(--space-5); min-height: 280px;
+    border: var(--border-width) solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    color: var(--text-2);
+    background: transparent;
+    text-decoration: none;
+    text-align: center;
+    overflow: hidden;
+    transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-base);
+    animation: slideUp 200ms ease both;
+  }
+  .new-tile:hover {
+    border-color: var(--border);
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+  }
+
+  /* Corner brackets — frame the empty canvas, brighten on hover */
+  .new-tile-corner {
+    position: absolute;
+    width: 14px; height: 14px;
+    pointer-events: none;
+    transition: border-color var(--transition-base), width var(--transition-base), height var(--transition-base);
+  }
+  .new-tile-corner-tl { top: 14px; left: 14px; border-top: 1px solid var(--border); border-left: 1px solid var(--border); }
+  .new-tile-corner-tr { top: 14px; right: 14px; border-top: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .new-tile-corner-bl { bottom: 14px; left: 14px; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); }
+  .new-tile-corner-br { bottom: 14px; right: 14px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .new-tile:hover .new-tile-corner {
+    width: 18px; height: 18px;
+    border-color: var(--text-2);
+  }
+
+  .new-tile-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    color: var(--text-1);
+    background: var(--accent-subtle);
+    transition: transform var(--transition-base), color var(--transition-base), background var(--transition-base);
+  }
+  .new-tile:hover .new-tile-icon {
+    color: var(--text-0);
+    background: var(--bg-active);
+    transform: scale(1.06) rotate(90deg);
+  }
+
+  .new-tile-text {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .new-tile-label {
+    font-size: var(--font-md);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-0);
+  }
+  .new-tile-sub {
+    font-size: var(--font-xs);
+    color: var(--text-3);
+    letter-spacing: -0.01em;
+  }
+
+  .new-tile-cta {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: var(--font-xs);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    transition: color var(--transition-base), gap var(--transition-base);
+  }
+  .new-tile:hover .new-tile-cta {
+    color: var(--text-0);
+    gap: 8px;
+  }
+  .new-tile-cta svg {
+    transition: transform var(--transition-base);
+  }
+  .new-tile:hover .new-tile-cta svg {
+    transform: translateX(2px);
+  }
 
   /* ── Grid ── */
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--space-4); }

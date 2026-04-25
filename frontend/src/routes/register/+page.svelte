@@ -13,7 +13,7 @@
     e.preventDefault();
     submitting = true;
     const success = await auth.register(name, email, password);
-    if (success) goto('/dashboard');
+    if (success) goto('/overview');
     submitting = false;
   }
 </script>

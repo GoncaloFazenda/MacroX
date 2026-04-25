@@ -26,6 +26,12 @@ function createMealStore() {
       return data.meal;
     },
 
+    async update(id, meal) {
+      const data = await api.put(`/composite-meals/${id}`, meal);
+      update((s) => ({ ...s, meals: s.meals.map((m) => (m._id === id ? data.meal : m)) }));
+      return data.meal;
+    },
+
     async remove(id) {
       await api.del(`/composite-meals/${id}`);
       update((s) => ({ ...s, meals: s.meals.filter((m) => m._id !== id) }));

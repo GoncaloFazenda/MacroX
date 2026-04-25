@@ -30,15 +30,19 @@ const router = Router();
  */
 router.get('/', optionalAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const { search, category, page = '1', limit = '50' } = req.query;
+    const { search, category, page = '1', limit = '50', scope } = req.query;
     const pageNum = Math.max(1, parseInt(page as string));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit as string)));
 
     const filter: Record<string, any> = {};
 
-    // Show default foods + user's custom foods
+    // Show default foods + user's custom foods, or only the user's foods when scope=custom
     if (req.user) {
-      filter.$or = [{ isDefault: true }, { userId: req.user.userId }];
+      if (scope === 'custom') {
+        filter.userId = req.user.userId;
+      } else {
+        filter.$or = [{ isDefault: true }, { userId: req.user.userId }];
+      }
     } else {
       filter.isDefault = true;
     }

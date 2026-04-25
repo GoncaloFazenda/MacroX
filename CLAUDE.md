@@ -62,8 +62,8 @@ macrox/
 │       │   └── components/layout/Navbar.svelte
 │       └── routes/
 │           ├── +layout.svelte   # Auth guard, navbar, theme init
-│           ├── +page.svelte     # Redirect to /dashboard or /login
-│           ├── dashboard/       # Macro gauges + quick nav
+│           ├── +page.svelte     # Redirect to /overview or /login
+│           ├── overview/        # Macro gauges + quick nav
 │           ├── foods/           # Table view, search, category chips
 │           ├── meals/           # List + /new builder
 │           ├── planner/daily/   # DnD with 4 meal slots (svelte-dnd-action)

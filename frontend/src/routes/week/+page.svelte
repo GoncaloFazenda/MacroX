@@ -4,11 +4,9 @@
   import { plannerStore } from "$lib/stores/planner.js";
   import { dayTemplateStore } from "$lib/stores/dayTemplates.js";
   import { onMount, flushSync } from "svelte";
-  import { Search, X as XIcon } from "lucide-svelte";
+  import { Search, X as XIcon, Copy, Check, AlertTriangle, Undo2 } from "lucide-svelte";
   import { getWeekStart, getDayNames, formatDate } from "$lib/utils/macros.js";
   import {
-    ChevronLeft,
-    ChevronRight,
     X,
     GripVertical,
     Plus,
@@ -17,6 +15,8 @@
   } from "lucide-svelte";
   import { dndzone } from "svelte-dnd-action";
   import { flip } from "svelte/animate";
+  import DateNav from "$lib/components/ui/DateNav.svelte";
+  import SaveButton from "$lib/components/ui/SaveButton.svelte";
 
   const FLIP_MS = 150;
   const DOCK_ZONE = "weekly-dock-zone";
@@ -26,6 +26,29 @@
   let saving = $state(false);
   let saved = $state(false);
   let nextId = 1;
+
+  // ── Undo & dirty tracking ──
+  let savedSnapshot = $state('');
+  let history = $state([]);
+  const MAX_HISTORY = 30;
+  const dirty = $derived(JSON.stringify(days.map(d => d.meals)) !== savedSnapshot);
+
+  function snapshotMeals() {
+    return JSON.stringify(days.map(d => d.meals));
+  }
+  function takeSavedSnapshot() {
+    savedSnapshot = snapshotMeals();
+    history = [];
+  }
+  function pushHistory() {
+    history = [...history.slice(-(MAX_HISTORY - 1)), JSON.parse(JSON.stringify(days))];
+  }
+  function undo() {
+    if (history.length === 0) return;
+    const prev = history[history.length - 1];
+    history = history.slice(0, -1);
+    days = prev;
+  }
   const initialDockPos =
     typeof window !== "undefined"
       ? localStorage.getItem("macrox-dock-pos") || "bottom"
@@ -34,7 +57,6 @@
   let draggingTemplate = $state(null);
   let hoverDay = $state(-1);
   let selectedTemplate = $state(null);
-  let hoverPreview = $state(null);
   let dockSearch = $state('');
 
   const filteredDockTemplates = $derived.by(() => {
@@ -136,6 +158,7 @@
         templateName: null,
       }));
     }
+    takeSavedSnapshot();
   }
 
   function getName(item) {
@@ -153,11 +176,6 @@
     return Math.round((m?.totalMacros?.calories || 0) * mult);
   }
 
-  function dayTotal(meals) {
-    return Object.values(meals)
-      .flat()
-      .reduce((s, i) => s + (i.cal || 0), 0);
-  }
 
   const weekTotals = $derived.by(() => {
     let cal = 0,
@@ -198,6 +216,7 @@
   });
 
   function applyTemplate(di, template) {
+    pushHistory();
     const meals = { breakfast: [], lunch: [], dinner: [], snack: [] };
     for (const meal of template.meals || []) {
       if (meals[meal.slot]) {
@@ -216,11 +235,13 @@
   }
 
   function removeItem(di, slot, id) {
+    pushHistory();
     days[di].meals[slot] = days[di].meals[slot].filter((i) => i.id !== id);
     days = [...days];
   }
 
   function clearDay(di) {
+    pushHistory();
     days[di] = {
       ...days[di],
       meals: { breakfast: [], lunch: [], dinner: [], snack: [] },
@@ -250,19 +271,22 @@
   function onDayDrop(e, di) {
     e.preventDefault();
     if (draggingTemplate) {
+      const template = draggingTemplate;
+      draggingTemplate = null;
+      hoverDay = -1;
       const hasItems = Object.values(days[di].meals).flat().length > 0;
       if (hasItems) {
-        if (
-          !confirm(
-            `Replace ${dayNames[di]}'s meals with "${draggingTemplate.name}"?`,
-          )
-        ) {
-          draggingTemplate = null;
-          hoverDay = -1;
-          return;
-        }
+        openConfirm(
+          'Replace day?',
+          `Apply "${template.name}" to ${dayNames[di]}?`,
+          `${dayNames[di]} already has items that will be replaced.`,
+          () => { applyTemplate(di, template); showToast(`Applied to ${dayNames[di]}`); }
+        );
+        return;
       }
-      applyTemplate(di, draggingTemplate);
+      applyTemplate(di, template);
+      showToast(`Applied to ${dayNames[di]}`);
+      return;
     }
     draggingTemplate = null;
     hoverDay = -1;
@@ -277,17 +301,22 @@
     selectedTemplate = template;
   }
   function handleDayClick(di) {
+    if (copySource >= 0) { handleDayCopyClick(di); return; }
     if (!selectedTemplate) return;
+    const template = selectedTemplate;
     const hasItems = Object.values(days[di].meals).flat().length > 0;
-    if (
-      hasItems &&
-      !confirm(
-        `Replace ${dayNames[di]}'s meals with "${selectedTemplate.name}"?`,
-      )
-    )
+    if (hasItems) {
+      openConfirm(
+        'Replace day?',
+        `Apply "${template.name}" to ${dayNames[di]}?`,
+        `${dayNames[di]} already has items that will be replaced.`,
+        () => { applyTemplate(di, template); selectedTemplate = null; showToast(`Applied to ${dayNames[di]}`); }
+      );
       return;
-    applyTemplate(di, selectedTemplate);
+    }
+    applyTemplate(di, template);
     selectedTemplate = null;
+    showToast(`Applied to ${dayNames[di]}`);
   }
 
   // Dock position
@@ -362,9 +391,11 @@
       }));
       await plannerStore.saveWeekly(weekStart, planDays);
       saved = true;
+      takeSavedSnapshot();
       setTimeout(() => (saved = false), 2000);
+      showToast('Week plan saved');
     } catch (err) {
-      alert("Save failed: " + err.message);
+      showToast('Save failed: ' + err.message, 'error');
     }
     saving = false;
   }
@@ -403,7 +434,111 @@
     }
     return parts.join(" · ");
   }
+  // ── Today indicator ──
+  const todayIndex = $derived.by(() => {
+    const today = new Date();
+    const start = new Date(weekStart + 'T00:00');
+    const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+    return diff >= 0 && diff < 7 ? diff : -1;
+  });
+
+  function goToThisWeek() {
+    weekStart = getWeekStart();
+    loadPlan();
+  }
+
+  // ── Per-day macros ──
+  function dayMacros(meals) {
+    let cal = 0, pro = 0, carb = 0, fat = 0;
+    for (const items of Object.values(meals)) {
+      for (const i of items) {
+        cal += i.cal || 0;
+        const ref = i.type === 'food'
+          ? $foodStore.foods.find(f => f._id === i.refId)
+          : $mealStore.meals.find(m => m._id === i.refId);
+        if (ref) {
+          const mult = (i.quantity || 100) / 100;
+          if (i.type === 'food') {
+            pro += (ref.protein || 0) * mult;
+            carb += (ref.netCarbs || 0) * mult;
+            fat += (ref.fat || 0) * mult;
+          } else {
+            pro += (ref.totalMacros?.protein || 0) * mult;
+            carb += (ref.totalMacros?.netCarbs || 0) * mult;
+            fat += (ref.totalMacros?.fat || 0) * mult;
+          }
+        }
+      }
+    }
+    return { cal: Math.round(cal), pro: Math.round(pro), carb: Math.round(carb), fat: Math.round(fat) };
+  }
+
+  // ── Copy day ──
+  let copySource = $state(-1);
+
+  function startCopy(di) {
+    copySource = di;
+    selectedTemplate = null;
+  }
+
+  function cancelCopy() { copySource = -1; }
+
+  function handleDayCopyClick(di) {
+    if (copySource < 0 || copySource === di) return;
+    const sourceMeals = days[copySource].meals;
+    const newMeals = {};
+    for (const [slot, items] of Object.entries(sourceMeals)) {
+      newMeals[slot] = items.map(item => ({ ...item, id: nextId++ }));
+    }
+    const hasItems = Object.values(days[di].meals).flat().length > 0;
+    if (hasItems) {
+      openConfirm(
+        'Replace day?',
+        `Copy ${dayNames[copySource]}'s plan to ${dayNames[di]}?`,
+        `${dayNames[di]} already has items that will be replaced.`,
+        () => {
+          pushHistory();
+          days[di] = { ...days[di], meals: newMeals, templateName: days[copySource].templateName };
+          days = [...days];
+          copySource = -1;
+          showToast(`Copied to ${dayNames[di]}`);
+        }
+      );
+    } else {
+      pushHistory();
+      days[di] = { ...days[di], meals: newMeals, templateName: days[copySource].templateName };
+      days = [...days];
+      copySource = -1;
+      showToast(`Copied to ${dayNames[di]}`);
+    }
+  }
+
+  // ── Confirmation modal ──
+  let confirmState = $state({ open: false, title: '', message: '', warning: '', onConfirm: null });
+
+  function openConfirm(title, message, warning, onConfirm) {
+    confirmState = { open: true, title, message, warning, onConfirm };
+  }
+  function closeConfirm() {
+    confirmState = { open: false, title: '', message: '', warning: '', onConfirm: null };
+  }
+  function executeConfirm() {
+    if (confirmState.onConfirm) confirmState.onConfirm();
+    closeConfirm();
+  }
+
+  // ── Toast ──
+  let toast = $state({ visible: false, message: '', type: 'success' });
+  let toastTimeout = null;
+
+  function showToast(message, type = 'success') {
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toast = { visible: true, message, type };
+    toastTimeout = setTimeout(() => (toast = { ...toast, visible: false }), 3000);
+  }
 </script>
+
+<svelte:window onbeforeunload={(e) => { if (dirty) { e.preventDefault(); } }} />
 
 <svelte:head><title>Weekly Planner — MacroX</title></svelte:head>
 
@@ -413,28 +548,25 @@
       <h1 class="page-title">Weekly Planner</h1>
       <p class="page-subtitle">Plan your week</p>
     </div>
-    <div class="top-right">
-      <div class="week-nav">
-        <button class="btn btn-ghost btn-sm" onclick={prevWeek}
-          ><ChevronLeft size={16} /></button
-        >
-        <span class="week-label"
-          >Week of {new Date(weekStart + "T00:00").toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })}</span
-        >
-        <button class="btn btn-ghost btn-sm" onclick={nextWeek}
-          ><ChevronRight size={16} /></button
-        >
-      </div>
-      <div class="top-actions">
-        {#if saved}<span class="saved-msg">Saved</span>{/if}
-        <button class="btn btn-primary" onclick={savePlan} disabled={saving}
-          >{saving ? "Saving…" : "Save"}</button
-        >
-      </div>
-    </div>
+  </div>
+
+  <div class="date-row animate-slide-up stagger-1">
+    <DateNav
+      date={weekStart}
+      onprev={prevWeek}
+      onnext={nextWeek}
+      ontoday={todayIndex === -1 ? goToThisWeek : undefined}
+      formatOptions={{ month: 'long', day: 'numeric', year: 'numeric' }}
+    />
+  </div>
+  <div class="save-row animate-slide-up stagger-1">
+    {#if history.length > 0}
+      <button class="undo-btn" onclick={undo} title="Undo last action" type="button">
+        <Undo2 size={13} strokeWidth={1.5} />
+        <span>Undo</span>
+      </button>
+    {/if}
+    <SaveButton dirty={dirty} saving={saving} onclick={savePlan} />
   </div>
 
   {#if selectedTemplate}
@@ -443,6 +575,14 @@
       <button class="btn-link" onclick={() => (selectedTemplate = null)}
         >Cancel</button
       >
+    </div>
+  {/if}
+
+  {#if copySource >= 0}
+    <div class="select-hint animate-fade-in">
+      <Copy size={13} strokeWidth={1.5} />
+      Click a day to paste <strong>{dayNames[copySource]}</strong>'s plan ·
+      <button class="btn-link" onclick={cancelCopy}>Cancel</button>
     </div>
   {/if}
 
@@ -526,75 +666,96 @@
 </div>
 
 {#snippet dayColumn(i)}
+  {@const macros = dayMacros(days[i].meals)}
+  {@const hasItems = Object.values(days[i].meals).flat().length > 0}
   <div
     class="day-col"
+    class:day-col-today={todayIndex === i}
     class:day-col-drop={draggingTemplate && hoverDay === i}
     class:day-col-target={draggingTemplate && hoverDay !== i}
-    class:day-col-selectable={selectedTemplate}
+    class:day-col-selectable={selectedTemplate || copySource >= 0}
+    class:day-col-copy-source={copySource === i}
     ondragover={(e) => onDayDragOver(e, i)}
     ondragleave={() => onDayDragLeave(i)}
     ondrop={(e) => onDayDrop(e, i)}
     onclick={() => handleDayClick(i)}
-    role={selectedTemplate ? "button" : undefined}
-    tabindex={selectedTemplate ? 0 : undefined}
+    role={selectedTemplate || copySource >= 0 ? "button" : undefined}
+    tabindex={selectedTemplate || copySource >= 0 ? 0 : undefined}
   >
     <div class="day-head">
       <div class="day-head-left">
         <span class="day-name">{dayNames[i]}</span>
         <span class="day-num">{getDateNum(i)}</span>
+        {#if todayIndex === i}<span class="today-dot"></span>{/if}
       </div>
-      <span class="day-kcal mono">{dayTotal(days[i].meals)}</span>
+      <span class="day-kcal mono">{macros.cal}</span>
     </div>
+
+    {#if hasItems}
+      <div class="day-macros">
+        <span class="dm mono" style="color: var(--pro)">{macros.pro}p</span>
+        <span class="dm mono" style="color: var(--carb)">{macros.carb}c</span>
+        <span class="dm mono" style="color: var(--fat)">{macros.fat}f</span>
+      </div>
+    {/if}
 
     {#if days[i].templateName}
       <div class="template-badge">{days[i].templateName}</div>
     {/if}
 
-    {#if draggingTemplate && hoverDay === i}
-      <div class="drop-overlay">
-        <span class="drop-text">Drop template here</span>
-      </div>
-    {:else if draggingTemplate && hoverDay !== i}
-      <div class="drop-hint">
-        <span class="drop-hint-text">Drop here</span>
-      </div>
-    {:else}
-      <div class="day-meals">
-        {#each slotOrder as slot}
-          {#if days[i].meals[slot].length > 0}
-            <div class="meal-group">
-              <span class="meal-slot-label">{slotLabels[slot]}</span>
-              {#each days[i].meals[slot] as item}
-                <div class="day-item">
-                  <span class="di-name">{item.name}</span>
-                  <button
-                    class="di-rm"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      removeItem(i, slot, item.id);
-                    }}><X size={10} strokeWidth={1.5} /></button
-                  >
-                </div>
-              {/each}
-            </div>
-          {/if}
-        {/each}
-        {#if Object.values(days[i].meals).flat().length === 0}
-          <a href="/day?date={getDateStr(i)}" class="day-add-link" onclick={(e) => e.stopPropagation()}>
-            <Plus size={20} strokeWidth={1.5} />
-          </a>
+    <div class="day-meals">
+      {#each slotOrder as slot}
+        {#if days[i].meals[slot].length > 0}
+          <div class="meal-group">
+            <span class="meal-slot-label">{slotLabels[slot]}</span>
+            {#each days[i].meals[slot] as item}
+              <div class="day-item">
+                <span class="di-name">{item.name}</span>
+                <button
+                  class="di-rm"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    removeItem(i, slot, item.id);
+                  }}><X size={10} strokeWidth={1.5} /></button
+                >
+              </div>
+            {/each}
+          </div>
         {/if}
+      {/each}
+      {#if !hasItems && !draggingTemplate}
+        <a href="/day?date={getDateStr(i)}" class="day-add-link" onclick={(e) => {
+          if (copySource >= 0 || selectedTemplate) { e.preventDefault(); } else { e.stopPropagation(); }
+        }}>
+          <Plus size={20} strokeWidth={1.5} />
+          <span class="day-add-text">Plan this day</span>
+        </a>
+      {/if}
+    </div>
+
+    {#if draggingTemplate}
+      <div class="drop-indicator" class:drop-indicator-active={hoverDay === i}>
+        <span class="drop-indicator-text">{hoverDay === i ? 'Drop here' : 'Drop to apply'}</span>
       </div>
     {/if}
 
-    {#if Object.values(days[i].meals).flat().length > 0 && !draggingTemplate}
+    {#if hasItems && !draggingTemplate}
       <div class="day-bottom-actions">
-        <a href="/day?date={getDateStr(i)}" class="day-edit" onclick={(e) => e.stopPropagation()}>Edit</a>
+        <a href="/day?date={getDateStr(i)}" class="day-edit" onclick={(e) => {
+          if (copySource >= 0 || selectedTemplate) { e.preventDefault(); } else { e.stopPropagation(); }
+        }}>Edit</a>
+        <button
+          class="day-action-btn"
+          onclick={(e) => {
+            e.stopPropagation();
+            startCopy(i);
+          }}><Copy size={11} strokeWidth={1.5} />Copy</button
+        >
         <button
           class="day-clear"
           onclick={(e) => {
             e.stopPropagation();
-            clearDay(i);
+            openConfirm('Clear day?', `Remove all items from ${dayNames[i]}?`, '', () => { clearDay(i); showToast(`${dayNames[i]} cleared`); });
           }}>Clear</button
         >
       </div>
@@ -622,38 +783,38 @@
         <GripVertical size={14} strokeWidth={1.5} />
         <span class="dock-label">Day Plans</span>
       </div>
-      <div class="dock-actions">
-        <a href="/day" class="btn btn-secondary btn-sm"
-          ><Plus size={14} strokeWidth={1.5} />Add in My Day</a
-        >
+      <div class="dock-right-items-wrapper">
+
+        <div class="dock-search-wrapper">
+
+          <div class="dock-search">
+            <Search size={13} class="dock-search-icon" />
+            <input
+            class="dock-search-input"
+            type="text"
+            placeholder="Search day plans…"
+            bind:value={dockSearch}
+            onpointerdown={(e) => e.stopPropagation()}
+            onmousedown={(e) => e.stopPropagation()}
+            />
+            {#if dockSearch}
+            <button class="dock-search-clear" onclick={() => dockSearch = ''} aria-label="Clear search">
+              <XIcon size={11} />
+            </button>
+            {/if}
+          </div>
+        </div>
         <button
-          class="btn btn-ghost btn-sm dock-toggle"
-          onclick={toggleDock}
-          aria-label="Move dock"
-        >
-          {#if dockPosition === "bottom"}<ChevronUp
-              size={14}
-              strokeWidth={1.5}
-            />{:else}<ChevronDown size={14} strokeWidth={1.5} />{/if}
-        </button>
-      </div>
+        class="btn btn-ghost btn-sm dock-toggle"
+        onclick={toggleDock}
+        aria-label="Move dock"
+      >
+        {#if dockPosition === "bottom"}<ChevronUp
+            size={14}
+            strokeWidth={1.5}
+          />{:else}<ChevronDown size={14} strokeWidth={1.5} />{/if}
+      </button>
     </div>
-    <!-- Dock search -->
-    <div class="dock-search">
-      <Search size={13} class="dock-search-icon" />
-      <input
-        class="dock-search-input"
-        type="text"
-        placeholder="Search day plans…"
-        bind:value={dockSearch}
-        onpointerdown={(e) => e.stopPropagation()}
-        onmousedown={(e) => e.stopPropagation()}
-      />
-      {#if dockSearch}
-        <button class="dock-search-clear" onclick={() => dockSearch = ''} aria-label="Clear search">
-          <XIcon size={11} />
-        </button>
-      {/if}
     </div>
     <div class="dock-cards">
       {#if $dayTemplateStore.templates.length === 0}
@@ -670,6 +831,7 @@
             class="tpl-card"
             class:tpl-selected={selectedTemplate?._id === template._id}
             draggable="true"
+            title={getTemplatePreviewText(template) || 'No items'}
             ondragstart={(e) => {
               e.stopPropagation();
               onDragStart(e, template);
@@ -679,49 +841,35 @@
             onmousedown={(e) => e.stopPropagation()}
             ontouchstart={(e) => e.stopPropagation()}
             onclick={() => handleTemplateClick(template)}
-            onmouseenter={() => (hoverPreview = template._id)}
-            onmouseleave={() => (hoverPreview = null)}
             role="button"
             tabindex="0"
           >
-            <div class="tpl-grip">
-              <GripVertical size={13} strokeWidth={1.5} />
-            </div>
-            <div class="tpl-info">
-              <span class="tpl-name">{template.name}</span>
+            <div class="tpl-grip-icon"><GripVertical size={12} strokeWidth={1.5} /></div>
+            <div class="tpl-body">
+              <div class="tpl-top">
+                <span class="tpl-name">{template.name}</span>
+                <button
+                  class="tpl-del"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    openConfirm('Delete plan?', `Delete "${template.name}"?`, 'This cannot be undone.', () => dayTemplateStore.remove(template._id));
+                  }}
+                  aria-label="Delete template"
+                  ><X size={11} strokeWidth={1.5} /></button
+                >
+              </div>
+              <div class="tpl-stats">
+                <span class="tpl-cal mono" style="color: var(--cal)">{Math.round(template.totalMacros?.calories || 0)}<span class="tpl-cal-unit">kcal</span></span>
+                <span class="tpl-count">{(template.meals || []).reduce((s, m) => s + (m.items?.length || 0), 0)} items</span>
+              </div>
               <div class="tpl-macros">
-                <span class="mono" style="color: var(--cal)"
-                  >{Math.round(template.totalMacros?.calories || 0)} kcal</span
-                >
+                <span class="mono" style="color: var(--pro)">{Math.round(template.totalMacros?.protein || 0)}p</span>
                 <span class="tpl-sep">·</span>
-                <span class="mono" style="color: var(--pro)"
-                  >{Math.round(template.totalMacros?.protein || 0)}p</span
-                >
+                <span class="mono" style="color: var(--carb)">{Math.round(template.totalMacros?.netCarbs || 0)}c</span>
                 <span class="tpl-sep">·</span>
-                <span class="mono" style="color: var(--carb)"
-                  >{Math.round(template.totalMacros?.netCarbs || 0)}c</span
-                >
-                <span class="tpl-sep">·</span>
-                <span class="mono" style="color: var(--fat)"
-                  >{Math.round(template.totalMacros?.fat || 0)}f</span
-                >
+                <span class="mono" style="color: var(--fat)">{Math.round(template.totalMacros?.fat || 0)}f</span>
               </div>
             </div>
-            <button
-              class="tpl-del"
-              onclick={(e) => {
-                e.stopPropagation();
-                if (confirm("Delete this day plan?"))
-                  dayTemplateStore.remove(template._id);
-              }}
-              aria-label="Delete template"
-              ><X size={12} strokeWidth={1.5} /></button
-            >
-            {#if hoverPreview === template._id}
-              <div class="tpl-preview">
-                {getTemplatePreviewText(template) || "No items"}
-              </div>
-            {/if}
           </div>
         {/each}
       {/if}
@@ -729,40 +877,90 @@
   </div>
 {/snippet}
 
+<!-- Confirmation Modal -->
+{#if confirmState.open}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <div class="modal-overlay" onclick={closeConfirm}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+      <div class="cm-head">
+        <h2 class="cm-title">{confirmState.title}</h2>
+        <button class="btn btn-ghost btn-sm" onclick={closeConfirm}><X size={14} /></button>
+      </div>
+      <p class="cm-body">{confirmState.message}</p>
+      {#if confirmState.warning}
+        <div class="cm-warn">
+          <AlertTriangle size={14} strokeWidth={1.5} />
+          <span>{confirmState.warning}</span>
+        </div>
+      {/if}
+      <div class="cm-actions">
+        <button class="btn btn-ghost" onclick={closeConfirm}>Cancel</button>
+        <button class="btn {confirmState.warning ? 'btn-danger' : 'btn-primary'}" onclick={executeConfirm}>Confirm</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Toast -->
+{#if toast.visible}
+  <div class="toast-container">
+    <div class="wk-toast wk-toast-{toast.type}" role="alert">
+      {#if toast.type === 'success'}
+        <Check size={14} strokeWidth={2} />
+      {:else}
+        <AlertTriangle size={14} strokeWidth={1.5} />
+      {/if}
+      <span>{toast.message}</span>
+    </div>
+  </div>
+{/if}
+
 <style>
   .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-4);
   }
-  .top-right {
+  /* ── Date Row ── */
+  .date-row {
+    position: relative;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: var(--space-2);
-  }
-  .top-actions {
-    display: flex;
-    gap: var(--space-2);
+    justify-content: center;
     align-items: center;
+    margin-bottom: var(--space-8);
   }
-  .saved-msg {
-    font-size: var(--font-sm);
-    color: var(--success);
-    font-weight: 500;
-  }
-  .week-nav {
+
+  .save-row {
     display: flex;
+    justify-content: flex-end;
     align-items: center;
     gap: var(--space-3);
+    margin-bottom: var(--space-8);
   }
-  .week-label {
-    font-size: var(--font-base);
-    font-weight: 500;
-    min-width: 160px;
-    text-align: center;
+  .undo-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: var(--space-2) var(--space-5);
+    font-size: var(--font-sm);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--text-2);
+    background: transparent;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: all var(--transition-fast);
   }
+  .undo-btn:hover {
+    color: var(--text-0);
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+  }
+  .undo-btn:active { transform: scale(0.98); }
 
   .select-hint {
     padding: var(--space-3) var(--space-5);
@@ -860,30 +1058,25 @@
     letter-spacing: 0.02em;
   }
 
-  .drop-overlay {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: var(--border-width) dashed var(--text-1);
-    border-radius: var(--radius-md);
-  }
-  .drop-text {
-    font-size: var(--font-sm);
-    color: var(--text-1);
-    font-weight: 500;
-  }
-  .drop-hint {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .drop-indicator {
+    padding: var(--space-2);
+    margin-top: var(--space-2);
     border: var(--border-width) dashed var(--border);
     border-radius: var(--radius-md);
+    text-align: center;
+    transition: all var(--transition-fast);
   }
-  .drop-hint-text {
-    font-size: var(--font-sm);
+  .drop-indicator-active {
+    border-color: var(--text-1);
+    background: var(--accent-subtle);
+  }
+  .drop-indicator-text {
+    font-size: var(--font-xs);
     color: var(--text-3);
+    font-weight: 500;
+  }
+  .drop-indicator-active .drop-indicator-text {
+    color: var(--text-1);
   }
 
   /* ── Meal Groups ── */
@@ -1043,31 +1236,34 @@
     border-radius: var(--radius-lg);
     padding: var(--space-4) var(--space-5);
     margin-bottom: var(--space-4);
+    background: var(--bg-hover);
   }
   .dock-top {
     margin-bottom: var(--space-5);
   }
   .dock-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    gap: var(--space-3);
     margin-bottom: var(--space-3);
+  }
+  .dock-right-items-wrapper {
+    display: flex;
+    
+    gap: var(--space-3);
   }
   .dock-label {
     font-size: var(--font-sm);
     font-weight: 600;
     color: var(--text-1);
-  }
-  .dock-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
+    white-space: nowrap;
   }
   .dock-toggle {
     width: 28px;
     height: 28px;
     padding: 0;
     color: var(--text-3);
+    flex-shrink: 0;
   }
   .dock-handle {
     display: flex;
@@ -1123,18 +1319,21 @@
     outline-color: var(--text-0) !important;
   }
 
+  
   .dock-search {
+    flex: 1;
     display: flex; align-items: center; gap: var(--space-2);
     border: var(--border-width) solid var(--border); border-radius: var(--radius-md);
-    background: var(--bg-0); padding: 0 var(--space-3);
-    margin-bottom: var(--space-3);
+    background: transparent; padding: 0 var(--space-3);
     transition: border-color var(--transition-fast);
+    max-width: 200px;
+    min-width: 0;
   }
   .dock-search:focus-within { border-color: var(--border-strong); }
   :global(.dock-search-icon) { color: var(--text-3); flex-shrink: 0; }
   .dock-search-input {
     flex: 1; border: none; background: transparent;
-    padding: 7px 0; font-size: var(--font-xs); color: var(--text-1);
+    padding: 6px 0; font-size: var(--font-xs); color: var(--text-1);
     font-family: var(--font-sans); outline: none; min-width: 0;
   }
   .dock-search-input::placeholder { color: var(--text-3); }
@@ -1148,8 +1347,20 @@
   .dock-cards {
     display: flex;
     gap: var(--space-3);
-    flex-wrap: wrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px var(--space-2);
+    margin: -2px -2px 0;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
   }
+  .dock-cards::-webkit-scrollbar { height: 6px; }
+  .dock-cards::-webkit-scrollbar-track { background: transparent; }
+  .dock-cards::-webkit-scrollbar-thumb {
+    background: var(--bg-3);
+    border-radius: var(--radius-full);
+  }
+  .dock-cards::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
   .dock-empty {
     font-size: var(--font-sm);
     color: var(--text-3);
@@ -1163,8 +1374,10 @@
   }
 
   .tpl-card {
+    
     position: relative;
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
@@ -1172,49 +1385,76 @@
     border-radius: var(--radius-md);
     cursor: grab;
     user-select: none;
-    min-width: 220px;
+    width: 200px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
     transition: all var(--transition-fast);
     background: transparent;
   }
   .tpl-card:hover {
     border-color: var(--border-strong);
     background: var(--bg-hover);
+    transform: translateY(-1px);
   }
   .tpl-card:active {
     cursor: grabbing;
+    transform: translateY(0);
   }
   .tpl-selected {
     border-color: var(--text-2);
     background: var(--accent-subtle);
   }
-  .tpl-grip {
-    color: var(--text-3);
-    opacity: 0.3;
-    flex-shrink: 0;
+  .tpl-top {
     display: flex;
-  }
-  .tpl-card:hover .tpl-grip {
-    opacity: 0.7;
-  }
-  .tpl-info {
-    flex: 1;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-2);
     min-width: 0;
   }
   .tpl-name {
-    font-size: var(--font-base);
+    font-size: var(--font-sm);
     font-weight: 500;
-    display: block;
-    margin-bottom: 2px;
+    color: var(--text-0);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+  .tpl-cal {
+    font-size: var(--font-sm);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+  }
+  .tpl-cal-unit {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-3);
+    letter-spacing: 0.02em;
+  }
+  .tpl-stats {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .tpl-count {
+    font-size: 10px;
+    color: var(--text-3);
+    font-weight: 400;
   }
   .tpl-macros {
     display: flex;
     gap: var(--space-2);
     align-items: baseline;
-    flex-wrap: wrap;
   }
   .tpl-macros .mono {
     font-size: var(--font-xs);
-    opacity: 0.7;
+    opacity: 0.75;
   }
   .tpl-sep {
     font-size: var(--font-xs);
@@ -1226,9 +1466,10 @@
     color: var(--text-3);
     cursor: pointer;
     display: flex;
-    padding: 3px;
+    padding: 2px;
     border-radius: var(--radius-sm);
     opacity: 0;
+    flex-shrink: 0;
     transition: all var(--transition-fast);
   }
   .tpl-card:hover .tpl-del {
@@ -1238,23 +1479,137 @@
     color: var(--danger);
     background: var(--danger-bg);
   }
+  .tpl-grip-icon {
+    display: flex;
+    align-items: center;
+    color: var(--text-3);
+    opacity: 0.3;
+    flex-shrink: 0;
+    transition: opacity var(--transition-fast);
+  }
+  .tpl-card:hover .tpl-grip-icon {
+    opacity: 0.7;
+  }
+  .tpl-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
 
-  .tpl-preview {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    margin-top: var(--space-1);
-    padding: var(--space-3) var(--space-4);
-    background: var(--bg-modal);
-    border: var(--border-width) solid var(--border-strong);
-    border-radius: var(--radius-md);
+  /* ── Today indicator ── */
+  .day-col-today {
+    border-color: var(--border-strong);
+  }
+  .today-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-0);
+    display: inline-block;
+    margin-left: var(--space-1);
+  }
+
+  /* ── Per-day macros ── */
+  .day-macros {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+  .dm {
+    font-size: 10.5px;
+    opacity: 0.65;
+  }
+
+  /* ── Copy day ── */
+  .day-col-copy-source {
+    border-color: var(--text-2);
+    background: var(--accent-subtle);
+  }
+  .day-action-btn {
+    background: none;
+    border: none;
     font-size: var(--font-xs);
-    color: var(--text-1);
-    z-index: 20;
+    color: var(--text-2);
+    cursor: pointer;
+    font-family: var(--font-sans);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: color var(--transition-fast);
+  }
+  .day-action-btn:hover {
+    color: var(--text-0);
+  }
+
+  .day-add-text {
+    font-size: var(--font-xs);
+    color: var(--text-3);
+  }
+
+  /* ── Confirmation modal ── */
+  .cm-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-5);
+  }
+  .cm-title {
+    font-size: var(--font-lg);
+    font-weight: 600;
+  }
+  .cm-body {
+    font-size: var(--font-sm);
+    color: var(--text-2);
+    margin-bottom: var(--space-4);
     line-height: 1.6;
-    pointer-events: none;
-    animation: fadeIn 150ms ease;
+  }
+  .cm-warn {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--danger-bg);
+    border: var(--border-width) solid rgba(201, 112, 112, 0.15);
+    border-radius: var(--radius-md);
+    font-size: var(--font-sm);
+    color: var(--text-1);
+    line-height: 1.5;
+    margin-bottom: var(--space-5);
+  }
+  .cm-warn :global(svg) {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--danger);
+  }
+  .cm-actions {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: flex-end;
+  }
+
+  /* ── Toast ── */
+  .wk-toast {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-md);
+    font-size: var(--font-sm);
+    font-weight: 500;
+    border: var(--border-width) solid var(--border);
+    background: var(--bg-modal);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    animation: slideUp 200ms ease both;
+  }
+  .wk-toast-success {
+    color: var(--success);
+    border-color: var(--success);
+  }
+  .wk-toast-error {
+    color: var(--danger);
+    border-color: var(--danger);
   }
 
   @media (max-width: 1024px) {
@@ -1269,9 +1624,6 @@
     .top-bar {
       flex-direction: column;
       gap: var(--space-3);
-    }
-    .top-right {
-      align-items: flex-start;
     }
   }
 </style>

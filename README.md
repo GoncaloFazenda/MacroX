@@ -48,7 +48,7 @@ npm run dev     # Runs on http://localhost:5173
 - 🔧 **Composite Meals** — Combine foods into reusable meals
 - 📅 **Daily Planner** — Drag & drop into breakfast/lunch/dinner/snack
 - 🗓️ **Weekly Planner** — 7-day drag & drop planning
-- 📊 **Dashboard** — Animated macro gauges with progress tracking
+- 📊 **Overview** — Animated macro gauges with progress tracking
 - 📋 **Templates** — Save and reuse meal configurations
 - 🌗 **Dark/Light Mode** — Premium theme system
 - 🔐 **JWT Auth** — HTTP-only cookie authentication

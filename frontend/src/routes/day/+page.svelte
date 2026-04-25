@@ -6,24 +6,85 @@
   import { dayTemplateStore } from '$lib/stores/dayTemplates.js';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
+  import { beforeNavigate, goto } from '$app/navigation';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import { formatDate, getPercentage } from '$lib/utils/macros.js';
-  import { ChevronLeft, ChevronRight, X, Plus, Sparkles, GripVertical, Bookmark } from 'lucide-svelte';
+  import { X, Plus, Sparkles, GripVertical, Bookmark, ArrowLeft, Pencil, Check, Trash2, Undo2, Copy } from 'lucide-svelte';
+  import DateNav from '$lib/components/ui/DateNav.svelte';
+  import SaveButton from '$lib/components/ui/SaveButton.svelte';
   import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
   import { flip } from 'svelte/animate';
 
   const FLIP_MS = 150;
   const ZONE = 'planner';
 
-  // Read ?date=YYYY-MM-DD from URL if present (used by weekly planner links)
-  const urlDate = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : null;
+  // Read URL params (used by weekly planner links and templates page)
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const urlDate = urlParams?.get('date');
+  const urlTemplateId = urlParams?.get('templateId');
+  const urlNewPlan = urlParams?.get('newPlan') === '1';
+
   let currentDate = $state(urlDate || formatDate(new Date()));
   let search = $state('');
   let activeCategory = $state('All');
   let activeSlot = $state('breakfast');
   let saving = $state(false);
-  let saved = $state(false);
   let mounted = $state(false);
   let nextId = 1;
+
+  // ── Template-edit / new-plan mode ──
+  let templateMode = $state(!!urlTemplateId || urlNewPlan);
+  let isNewTemplate = $state(urlNewPlan);
+  let editingTemplateId = $state(urlTemplateId || null);
+  let templateNameValue = $state('');
+  let editingTemplateName = $state(urlNewPlan); // open name editor immediately when creating
+  let templateNameDraft = $state('');
+
+  // ── Dirty tracking ──
+  let savedSnapshot = $state('');
+  const dirty = $derived(snapshot() !== savedSnapshot);
+
+  function snapshot() {
+    return JSON.stringify({
+      slots: Object.fromEntries(
+        Object.entries(slots).map(([k, items]) => [
+          k,
+          items.map(i => ({ type: i.type, refId: i.refId, quantity: i.quantity })),
+        ])
+      ),
+      name: templateMode ? templateNameValue : null,
+    });
+  }
+  function takeSavedSnapshot() { savedSnapshot = snapshot(); }
+
+  // Toast
+  let toast = $state({ visible: false, message: '', type: 'success' });
+  let toastTimeout;
+  function showToast(message, type = 'success') {
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toast = { visible: true, message, type };
+    toastTimeout = setTimeout(() => (toast = { ...toast, visible: false }), 3000);
+  }
+
+  // Confirm modal
+  let confirmState = $state({ open: false, title: '', message: '', warning: '', confirmText: 'Confirm', danger: false, onConfirm: null });
+  function openConfirm(cfg) {
+    confirmState = { open: true, title: '', message: '', warning: '', confirmText: 'Confirm', danger: false, onConfirm: null, ...cfg };
+  }
+  function closeConfirm() { confirmState = { ...confirmState, open: false, onConfirm: null }; }
+  async function executeConfirm() {
+    const cb = confirmState.onConfirm;
+    closeConfirm();
+    if (cb) await cb();
+  }
+
+  beforeNavigate(({ cancel, to }) => {
+    // Skip the guard for in-page hash changes
+    if (to?.url.pathname === $page.url.pathname && to?.url.search === $page.url.search) return;
+    if (dirty && !confirm('You have unsaved changes. Leave without saving?')) {
+      cancel();
+    }
+  });
 
   const categories = ['All', 'Protein', 'Vegetable', 'Fruit', 'Grain', 'Dairy', 'Fat & Oil', 'Nut & Seed', 'Legume', 'Beverage', 'Condiment', 'Other'];
 
@@ -41,12 +102,47 @@
   let flashItems = $state(new Set());
 
   onMount(async () => {
-    await Promise.all([foodStore.load({ limit: 200 }), mealStore.load()]);
+    await Promise.all([
+      foodStore.load({ limit: 200 }),
+      mealStore.load(),
+      templateMode && !isNewTemplate ? dayTemplateStore.load() : Promise.resolve(),
+    ]);
     syncSources();
-    await loadPlan();
+    if (isNewTemplate) {
+      // Empty state for new plan creation; user gets blank slots and an immediate name editor
+      slots = { breakfast: [], lunch: [], dinner: [], snack: [] };
+      templateNameValue = '';
+      templateNameDraft = '';
+    } else if (templateMode) {
+      await loadTemplate();
+    } else {
+      await loadPlan();
+    }
+    takeSavedSnapshot();
     syncSuggestions();
     setTimeout(() => mounted = true, 50);
   });
+
+  async function loadTemplate() {
+    const tpl = $dayTemplateStore.templates.find(t => t._id === editingTemplateId);
+    if (!tpl) {
+      showToast('Day plan not found', 'error');
+      slots = { breakfast: [], lunch: [], dinner: [], snack: [] };
+      templateNameValue = '';
+      return;
+    }
+    templateNameValue = tpl.name;
+    const newSlots = { breakfast: [], lunch: [], dinner: [], snack: [] };
+    for (const meal of (tpl.meals || [])) {
+      if (newSlots[meal.slot]) {
+        newSlots[meal.slot] = meal.items.map(item => ({
+          id: nextId++, type: item.type, refId: item.refId, quantity: item.quantity,
+          ...getItemMacros(item),
+        }));
+      }
+    }
+    slots = newSlots;
+  }
 
   function syncSources() {
     const q = search.toLowerCase();
@@ -142,7 +238,7 @@
         return { ...f, score };
       })
       .sort((a, b) => b.score - a.score)
-      .slice(0, 6);
+      .slice(0, 4);
   });
 
   function syncSuggestions() {
@@ -259,15 +355,67 @@
   function removeItem(slot, id) { slots[slot] = slots[slot].filter(i => i.id !== id); slots = { ...slots }; syncSuggestions(); }
 
   async function savePlan() {
-    saving = true; saved = false;
+    if (!dirty || saving) return;
+    saving = true;
     try {
-      const meals = Object.entries(slots).map(([slot, items]) => ({
-        slot, items: items.map(i => ({ type: i.type, refId: i.refId, quantity: i.quantity })),
-      }));
-      await plannerStore.saveDaily(currentDate, meals);
-      saved = true; setTimeout(() => saved = false, 2000);
-    } catch (err) { alert('Save failed: ' + err.message); }
+      if (templateMode) {
+        if (!templateNameValue.trim()) {
+          showToast('Day plan needs a name', 'error');
+          saving = false;
+          return;
+        }
+        const meals = Object.entries(slots)
+          .filter(([, items]) => items.length > 0)
+          .map(([slot, items]) => ({
+            slot,
+            items: items.map(i => ({ type: i.type, refId: i.refId, quantity: i.quantity })),
+          }));
+        if (meals.length === 0) {
+          showToast('Day plan needs at least one item', 'error');
+          saving = false;
+          return;
+        }
+        if (isNewTemplate) {
+          const created = await dayTemplateStore.create(templateNameValue.trim(), meals);
+          isNewTemplate = false;
+          editingTemplateId = created._id;
+          // Update URL so refresh / back nav works correctly without re-creating
+          if (typeof history !== 'undefined') {
+            history.replaceState(null, '', `/day?templateId=${created._id}`);
+          }
+          takeSavedSnapshot();
+          showToast('Day plan created');
+        } else {
+          await dayTemplateStore.update(editingTemplateId, { name: templateNameValue.trim(), meals });
+          takeSavedSnapshot();
+          showToast('Day plan saved');
+        }
+      } else {
+        const meals = Object.entries(slots).map(([slot, items]) => ({
+          slot, items: items.map(i => ({ type: i.type, refId: i.refId, quantity: i.quantity })),
+        }));
+        await plannerStore.saveDaily(currentDate, meals);
+        takeSavedSnapshot();
+        showToast('Day saved');
+      }
+    } catch (err) {
+      showToast('Save failed: ' + err.message, 'error');
+    }
     saving = false;
+  }
+
+  function startNameEdit() {
+    if (!templateMode) return;
+    templateNameDraft = templateNameValue;
+    editingTemplateName = true;
+  }
+  function commitNameEdit() {
+    const v = templateNameDraft.trim();
+    if (v) templateNameValue = v;
+    editingTemplateName = false;
+  }
+  function cancelNameEdit() {
+    editingTemplateName = false;
   }
 
   // ── Save as Day Template ──
@@ -277,8 +425,8 @@
 
   function openTemplateModal() {
     const totalItems = Object.values(slots).flat().length;
-    if (totalItems === 0) { alert('Add some items first before saving as a template.'); return; }
-    templateName = '';
+    if (totalItems === 0) { showToast('Add some items first', 'error'); return; }
+    templateName = templateMode ? `Copy of ${templateNameValue}` : '';
     showTemplateModal = true;
   }
 
@@ -293,9 +441,49 @@
         }));
       await dayTemplateStore.create(templateName.trim(), meals);
       showTemplateModal = false;
-      alert('Day template saved!');
-    } catch (err) { alert('Failed to save template: ' + err.message); }
+      showToast(templateMode ? 'Saved as new Day Plan' : 'Day plan saved');
+    } catch (err) { showToast('Failed to save: ' + err.message, 'error'); }
     savingTemplate = false;
+  }
+
+  // ── Revert ──
+  function askRevert() {
+    if (!dirty || saving) return;
+    openConfirm({
+      title: 'Revert changes?',
+      message: 'Discard all unsaved changes since the last save?',
+      confirmText: 'Revert',
+      onConfirm: async () => {
+        if (templateMode) {
+          await loadTemplate();
+        } else {
+          await loadPlan();
+        }
+        takeSavedSnapshot();
+        syncSuggestions();
+        showToast('Changes reverted');
+      },
+    });
+  }
+
+  // ── Delete day plan (template-edit mode only) ──
+  function askDeletePlan() {
+    if (!templateMode || !editingTemplateId) return;
+    openConfirm({
+      title: 'Delete this Day Plan?',
+      message: `Delete "${templateNameValue}"?`,
+      warning: 'This cannot be undone.',
+      confirmText: 'Delete',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await dayTemplateStore.remove(editingTemplateId);
+          // Bypass dirty navigation guard — the plan no longer exists.
+          savedSnapshot = snapshot();
+          await goto('/library/templates');
+        } catch (err) { showToast('Failed to delete: ' + err.message, 'error'); }
+      },
+    });
   }
 
   const templateSummary = $derived.by(() => {
@@ -304,33 +492,96 @@
     return { slotCount: filledSlots.length, totalItems, filledSlots };
   });
 
-  function prevDay() { const d = new Date(currentDate); d.setDate(d.getDate() - 1); currentDate = formatDate(d); loadPlan().then(syncSuggestions); }
-  function nextDay() { const d = new Date(currentDate); d.setDate(d.getDate() + 1); currentDate = formatDate(d); loadPlan().then(syncSuggestions); }
+  function prevDay() {
+    if (templateMode) return;
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - 1);
+    currentDate = formatDate(d);
+    loadPlan().then(() => { takeSavedSnapshot(); syncSuggestions(); });
+  }
+  function nextDay() {
+    if (templateMode) return;
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() + 1);
+    currentDate = formatDate(d);
+    loadPlan().then(() => { takeSavedSnapshot(); syncSuggestions(); });
+  }
 </script>
+
+<svelte:window onbeforeunload={(e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } }} />
 
 <svelte:head><title>Daily Planner — MacroX</title></svelte:head>
 
 <div class="page-container">
-  <div class="top-bar animate-slide-up">
-    <div>
-      <h1 class="page-title">Daily Planner</h1>
-      <p class="page-subtitle">Build your perfect day</p>
+  {#if templateMode}
+    <div class="tpl-toolbar animate-slide-up">
+      <a class="back-link" href="/library/templates"><ArrowLeft size={13} strokeWidth={1.5} /><span>Back to Day Plans</span></a>
+      <div class="top-actions">
+        {#if dirty}
+          <button class="revert-btn" onclick={askRevert} title="Revert unsaved changes" type="button">
+            <Undo2 size={13} strokeWidth={1.5} /><span>Revert</span>
+          </button>
+        {/if}
+        {#if !isNewTemplate}
+          <button class="btn btn-secondary btn-sm" onclick={openTemplateModal} type="button">
+            <Copy size={13} strokeWidth={1.5} />Save a Copy
+          </button>
+        {/if}
+        <SaveButton dirty={dirty} saving={saving} onclick={savePlan} />
+      </div>
     </div>
-    <div class="top-actions">
-      {#if saved}<span class="saved-msg">Saved</span>{/if}
-      <button class="btn btn-secondary btn-sm" onclick={openTemplateModal}><Bookmark size={13} strokeWidth={1.5} />Save as Template</button>
-      <button class="btn btn-primary" onclick={savePlan} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-    </div>
-  </div>
 
-  <div class="date-bar animate-slide-up stagger-1">
-    <button class="btn btn-ghost btn-sm" onclick={prevDay}><ChevronLeft size={14} /></button>
-    <span class="date-text">{new Date(currentDate + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
-    <button class="btn btn-ghost btn-sm" onclick={nextDay}><ChevronRight size={14} /></button>
-  </div>
+    <div class="tpl-center animate-slide-up stagger-1">
+      <span class="tpl-prefix">{isNewTemplate ? 'New Day Plan' : 'Editing'}</span>
+      {#if editingTemplateName}
+        <!-- svelte-ignore a11y_autofocus -->
+        <input
+          class="tpl-name-input"
+          bind:value={templateNameDraft}
+          onblur={commitNameEdit}
+          onkeydown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commitNameEdit(); }
+            if (e.key === 'Escape') { e.preventDefault(); cancelNameEdit(); }
+          }}
+          autofocus
+          maxlength="200"
+          placeholder="Name your plan…"
+        />
+      {:else}
+        <button class="tpl-name" onclick={startNameEdit} type="button" title="Click to rename">
+          <span>{templateNameValue || 'Untitled'}</span>
+          <Pencil size={12} strokeWidth={1.5} />
+        </button>
+      {/if}
+      {#if !isNewTemplate}
+        <button class="tpl-delete" onclick={askDeletePlan} type="button" title="Delete this Day Plan">
+          <Trash2 size={13} strokeWidth={1.5} />
+        </button>
+      {/if}
+    </div>
+  {:else}
+    <div class="top-bar animate-slide-up">
+      <div>
+        <h1 class="page-title">Daily Planner</h1>
+        <p class="page-subtitle">Build your perfect day</p>
+      </div>
+      <div class="top-actions">
+        {#if dirty}
+          <button class="revert-btn" onclick={askRevert} title="Revert unsaved changes" type="button">
+            <Undo2 size={13} strokeWidth={1.5} /><span>Revert</span>
+          </button>
+        {/if}
+        <button class="btn btn-secondary btn-sm" onclick={openTemplateModal} type="button">
+          <Bookmark size={13} strokeWidth={1.5} />Save as Template
+        </button>
+        <SaveButton dirty={dirty} saving={saving} onclick={savePlan} />
+      </div>
+    </div>
+    <DateNav date={currentDate} onprev={prevDay} onnext={nextDay} class="animate-slide-up stagger-1" style="margin-bottom: var(--space-5)" />
+  {/if}
 
   <!-- Macro Summary -->
-  <div class="macro-summary animate-slide-up stagger-2">
+  <div class="macro-summary animate-slide-up stagger-2 ">
     <div class="macro-stat">
       <div class="ms-top"><span class="ms-label">Calories</span><span class="ms-val mono">{totals.cal} {goals.calories != null ? `/ ${goals.calories}` : ''} <span class="ms-unit">kcal</span></span></div>
       <div class="progress-track"><div class="progress-fill" style="width: {mounted && goals.calories ? Math.min(getPercentage(totals.cal, goals.calories), 100) : 0}%; background: var(--cal)"></div></div>
@@ -557,15 +808,159 @@
   </div>
 {/if}
 
+<ConfirmModal
+  open={confirmState.open}
+  title={confirmState.title}
+  message={confirmState.message}
+  warning={confirmState.warning}
+  confirmText={confirmState.confirmText}
+  danger={confirmState.danger}
+  onconfirm={executeConfirm}
+  oncancel={closeConfirm}
+/>
+
+{#if toast.visible}
+  <div class="day-toast-wrap">
+    <div class="day-toast day-toast-{toast.type}" role="alert">
+      <Check size={14} strokeWidth={2} />
+      <span>{toast.message}</span>
+    </div>
+  </div>
+{/if}
+
 <style>
-  .top-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-4); }
-  .top-actions { display: flex; gap: var(--space-2); align-items: center; }
-  .saved-msg { font-size: var(--font-xs); color: var(--success); font-weight: 500; }
-  .date-bar { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); }
-  .date-text { font-size: var(--font-sm); font-weight: 500; min-width: 180px; text-align: center; }
+  .top-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-4); gap: var(--space-4); }
+  .top-actions { display: flex; gap: var(--space-3); align-items: center; }
+
+  /* ── Template-edit header ── */
+  .back-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: var(--font-xs); color: var(--text-3);
+    margin-bottom: var(--space-2);
+    transition: color var(--transition-fast);
+  }
+  .back-link:hover { color: var(--text-1); }
+
+  /* ── Template-edit toolbar (top row: back link + actions) ── */
+  .tpl-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  /* ── Centered template header ── */
+  .tpl-center {
+    display: flex; align-items: center; justify-content: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-5);
+    border-bottom: var(--border-width) solid var(--surface-border);
+  }
+  .tpl-prefix {
+    font-size: var(--font-md);
+    color: var(--text-3);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .tpl-prefix::after { content: ':'; margin-right: 2px; }
+
+  .tpl-name {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    background: none; border: none; padding: 4px 8px;
+    font-family: var(--font-sans);
+    font-size: var(--font-2xl);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--text-0);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+  }
+  .tpl-name :global(svg) {
+    color: var(--text-3);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+  .tpl-name:hover { background: var(--bg-hover); }
+  .tpl-name:hover :global(svg) { opacity: 1; }
+
+  .tpl-name-input {
+    background: transparent;
+    border: none;
+    border-bottom: var(--border-width) solid var(--text-2);
+    padding: 4px 8px;
+    font-family: var(--font-sans);
+    font-size: var(--font-2xl);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--text-0);
+    outline: none;
+    min-width: 320px;
+    text-align: center;
+  }
+
+  .tpl-delete {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    padding: 0;
+    margin-left: var(--space-2);
+    color: var(--text-3);
+    background: transparent;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .tpl-delete:hover {
+    color: var(--danger);
+    border-color: rgba(201, 112, 112, 0.18);
+    background: var(--danger-bg);
+  }
+
+  .revert-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: var(--space-2) var(--space-5);
+    font-size: var(--font-sm);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--text-2);
+    background: transparent;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: all var(--transition-fast);
+  }
+  .revert-btn:hover {
+    color: var(--text-0);
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+  }
+  .revert-btn:active { transform: scale(0.98); }
+
+  /* ── Toast ── */
+  .day-toast-wrap {
+    position: fixed; bottom: var(--space-4); right: var(--space-4); z-index: 2000;
+  }
+  .day-toast {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-md);
+    font-size: var(--font-sm); font-weight: 500;
+    border: var(--border-width) solid var(--border);
+    background: var(--bg-modal);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    animation: slideUp 200ms ease both;
+  }
+  .day-toast-success { color: var(--success); border-color: var(--success); }
+  .day-toast-error { color: var(--danger); border-color: var(--danger); }
+
 
   /* ── Macro Summary ── */
-  .macro-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6); padding: var(--space-5); border: var(--border-width) solid var(--border); border-radius: var(--radius-md); }
+  .macro-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-8); padding-top: var(--space-4);padding-bottom: var(--space-5);  }
   .macro-stat { display: flex; flex-direction: column; gap: var(--space-2); }
   .ms-top { display: flex; justify-content: space-between; align-items: baseline; }
   .ms-label { font-size: var(--font-xs); color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }

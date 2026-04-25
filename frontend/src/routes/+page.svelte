@@ -5,7 +5,7 @@
   onMount(() => {
     const unsub = auth.subscribe((state) => {
       if (!state.loading) {
-        window.location.href = state.user ? '/dashboard' : '/login';
+        window.location.href = state.user ? '/overview' : '/login';
       }
     });
     return unsub;

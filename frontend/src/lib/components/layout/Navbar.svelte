@@ -9,7 +9,7 @@
   let libraryTimeout;
 
   const mainNav = [
-    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/overview', label: 'Overview' },
     { href: '/day', label: 'My Day' },
     { href: '/week', label: 'My Week' },
   ];
@@ -36,7 +36,7 @@
 
 <nav class="navbar">
   <div class="navbar-inner">
-    <a href="/dashboard" class="logo">Macro<span class="logo-x">X</span></a>
+    <a href="/overview" class="logo">Macro<span class="logo-x">X</span></a>
 
     <div class="nav-links" class:open={mobileOpen}>
       {#each mainNav as item}

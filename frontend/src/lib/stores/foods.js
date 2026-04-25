@@ -19,6 +19,7 @@ function createFoodStore() {
         if (params.category) query.set('category', params.category);
         if (params.page) query.set('page', String(params.page));
         if (params.limit) query.set('limit', String(params.limit));
+        if (params.scope) query.set('scope', params.scope);
 
         const data = await api.get(`/foods?${query.toString()}`);
         set({ foods: data.foods, loading: false, pagination: data.pagination });
@@ -30,6 +31,12 @@ function createFoodStore() {
     async create(food) {
       const data = await api.post('/foods', food);
       update((s) => ({ ...s, foods: [data.food, ...s.foods] }));
+      return data.food;
+    },
+
+    async update(id, food) {
+      const data = await api.put(`/foods/${id}`, food);
+      update((s) => ({ ...s, foods: s.foods.map((f) => (f._id === id ? data.food : f)) }));
       return data.food;
     },
 

@@ -3,7 +3,8 @@
   import { plannerStore } from '$lib/stores/planner.js';
   import { foodStore } from '$lib/stores/foods.js';
   import { mealStore } from '$lib/stores/meals.js';
-  import { getPercentage, formatDate } from '$lib/utils/macros.js';
+  import { api } from '$lib/api/client.js';
+  import { getPercentage, formatDate, calculateMacros } from '$lib/utils/macros.js';
   import { onMount } from 'svelte';
   import { Settings } from 'lucide-svelte';
 
@@ -12,45 +13,83 @@
 
   let goals = $derived($auth.user?.goals || { calories: 2000, protein: 150, netCarbs: 100, fat: 65 });
   let totals = $state({ calories: 0, protein: 0, netCarbs: 0, fat: 0 });
+  let weekHistory = $state([]); // [{ date, letter, hasData, totals }]
 
   let editingGoals = $state(false);
   let goalForm = $state({ calories: 2000, protein: 150, netCarbs: 100, fat: 65 });
   let goalEnabled = $state({ protein: true, netCarbs: true, fat: true });
 
   const macros = $derived([
-    { key: 'calories', label: 'Calories', value: totals.calories, goal: goals.calories, unit: 'kcal', color: 'var(--cal)', bg: 'var(--cal-bg)', enabled: true },
-    { key: 'protein', label: 'Protein', value: totals.protein, goal: goals.protein, unit: 'g', color: 'var(--pro)', bg: 'var(--pro-bg)', enabled: goals.protein != null },
-    { key: 'netCarbs', label: 'Net Carbs', value: totals.netCarbs, goal: goals.netCarbs, unit: 'g', color: 'var(--carb)', bg: 'var(--carb-bg)', enabled: goals.netCarbs != null },
-    { key: 'fat', label: 'Fat', value: totals.fat, goal: goals.fat, unit: 'g', color: 'var(--fat)', bg: 'var(--fat-bg)', enabled: goals.fat != null },
+    { key: 'calories', label: 'Calories', value: totals.calories, goal: goals.calories, unit: 'kcal', color: 'var(--cal)', bg: 'var(--cal-bg)', enabled: true, integer: true },
+    { key: 'protein', label: 'Protein', value: totals.protein, goal: goals.protein, unit: 'g', color: 'var(--pro)', bg: 'var(--pro-bg)', enabled: goals.protein != null, integer: false },
+    { key: 'netCarbs', label: 'Net Carbs', value: totals.netCarbs, goal: goals.netCarbs, unit: 'g', color: 'var(--carb)', bg: 'var(--carb-bg)', enabled: goals.netCarbs != null, integer: false },
+    { key: 'fat', label: 'Fat', value: totals.fat, goal: goals.fat, unit: 'g', color: 'var(--fat)', bg: 'var(--fat-bg)', enabled: goals.fat != null, integer: false },
   ]);
 
+  const trendMacros = $derived(macros.filter(m => m.enabled && m.goal > 0));
+
+  function dayTotals(plan, foodMap, mealMap) {
+    if (!plan?.meals) return { calories: 0, protein: 0, netCarbs: 0, fat: 0 };
+    const items = plan.meals.flatMap(slot => slot.items || []);
+    return calculateMacros(items, foodMap, mealMap);
+  }
+
+  function formatDiff(diff, integer) {
+    const abs = Math.abs(diff);
+    return integer ? Math.round(abs) : Math.round(abs * 10) / 10;
+  }
+
+  function dayLetter(date) {
+    return ['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()];
+  }
+
+  function averagePercent(history, key, goal) {
+    const tracked = history.filter(d => d.hasData);
+    if (!tracked.length || !goal) return 0;
+    const sum = tracked.reduce((acc, d) => acc + d.totals[key], 0);
+    return Math.round((sum / tracked.length / goal) * 100);
+  }
+
   onMount(async () => {
-    await plannerStore.loadDaily(today);
-    await foodStore.load({ limit: 100 });
-    await mealStore.load();
+    // Build last-7-day range: today and the 6 days before
+    const start = new Date();
+    start.setDate(start.getDate() - 6);
+    const startStr = formatDate(start);
 
-    const plan = $plannerStore.dailyPlan;
-    if (plan?.meals) {
-      const foods = $foodStore.foods;
-      const meals = $mealStore.meals;
-      const foodMap = new Map(foods.map(f => [f._id, f]));
-      const mealMap = new Map(meals.map(m => [m._id, m]));
+    const [_, __, ___, rangeRes] = await Promise.all([
+      plannerStore.loadDaily(today),
+      foodStore.load({ limit: 100 }),
+      mealStore.load(),
+      api.get(`/daily-plans/range?start=${startStr}&end=${today}`).catch(() => ({ plans: [] })),
+    ]);
 
-      let c = 0, p = 0, cb = 0, f = 0;
-      for (const slot of plan.meals) {
-        for (const item of slot.items) {
-          const mult = item.quantity / 100;
-          if (item.type === 'food') {
-            const food = foodMap.get(item.refId);
-            if (food) { c += food.calories * mult; p += food.protein * mult; cb += food.netCarbs * mult; f += food.fat * mult; }
-          } else {
-            const meal = mealMap.get(item.refId);
-            if (meal?.totalMacros) { c += meal.totalMacros.calories * mult; p += meal.totalMacros.protein * mult; cb += meal.totalMacros.netCarbs * mult; f += meal.totalMacros.fat * mult; }
-          }
-        }
-      }
-      totals = { calories: Math.round(c), protein: Math.round(p * 10) / 10, netCarbs: Math.round(cb * 10) / 10, fat: Math.round(f * 10) / 10 };
+    const foodMap = new Map($foodStore.foods.map(f => [f._id, f]));
+    const mealMap = new Map($mealStore.meals.map(m => [m._id, m]));
+
+    // Today's totals
+    totals = dayTotals($plannerStore.dailyPlan, foodMap, mealMap);
+
+    // 7-day history
+    const plansByDate = new Map(
+      (rangeRes?.plans || []).map(p => [formatDate(new Date(p.date)), p])
+    );
+    const history = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = formatDate(d);
+      const plan = plansByDate.get(key);
+      const hasData = !!plan?.meals?.some(m => m.items?.length);
+      history.push({
+        date: key,
+        letter: dayLetter(d),
+        isToday: i === 0,
+        hasData,
+        totals: hasData ? dayTotals(plan, foodMap, mealMap) : { calories: 0, protein: 0, netCarbs: 0, fat: 0 },
+      });
     }
+    weekHistory = history;
+
     setTimeout(() => mounted = true, 50);
   });
 
@@ -86,7 +125,7 @@
   }
 </script>
 
-<svelte:head><title>Dashboard — MacroX</title></svelte:head>
+<svelte:head><title>Overview — MacroX</title></svelte:head>
 
 <div class="page-container">
   <div class="dash-header animate-slide-up">
@@ -126,13 +165,60 @@
           <div class="progress-track">
             <div class="progress-fill" style="width: {mounted ? getPercentage(macro.value, macro.goal) : 0}%; background: {macro.color}"></div>
           </div>
+          {@const diff = macro.goal - macro.value}
+          <div class="mc-remaining mono" class:mc-over={diff < 0} style={diff < 0 ? `color: ${macro.color}` : ''}>
+            {#if diff < 0}
+              +{formatDiff(diff, macro.integer)} {macro.unit} over
+            {:else}
+              {formatDiff(diff, macro.integer)} {macro.unit} left
+            {/if}
+          </div>
         {/if}
       </div>
     {/each}
   </div>
 
+  <!-- Last 7 Days -->
+  {#if trendMacros.length > 0}
+    <div class="trend-section animate-slide-up stagger-5">
+      <div class="section-head">
+        <span class="section-label">Last 7 Days</span>
+      </div>
+      <div class="trend-row">
+        {#each trendMacros as macro, i}
+          <div class="trend-card">
+            <div class="tc-head">
+              <span class="tc-label">{macro.label}</span>
+              <span class="tc-avg mono" style="color: {macro.color}">
+                {averagePercent(weekHistory, macro.key, macro.goal)}% avg
+              </span>
+            </div>
+            <div class="tc-bars">
+              {#each weekHistory as day}
+                {@const raw = macro.goal ? (day.totals[macro.key] / macro.goal) * 100 : 0}
+                {@const pct = Math.min(100, raw)}
+                <div class="tc-bar-col" class:tc-today={day.isToday}>
+                  <div class="tc-bar-track">
+                    {#if day.hasData}
+                      <div
+                        class="tc-bar-fill"
+                        class:tc-bar-over={raw > 100}
+                        style="height: {mounted ? pct : 0}%; background: {macro.color}"
+                      ></div>
+                    {/if}
+                  </div>
+                  <span class="tc-day" class:tc-day-today={day.isToday}>{day.letter}</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
   <!-- Quick Nav -->
-  <div class="nav-row animate-slide-up stagger-5">
+  <div class="nav-row animate-slide-up stagger-6">
     <a href="/day" class="nav-card">
       <span class="nc-label">My Day</span>
       <span class="nc-desc">Plan today's meals</span>
@@ -267,6 +353,93 @@
   .mc-num { font-size: var(--font-3xl); font-weight: 600; letter-spacing: -0.03em; }
   .mc-unit { font-size: var(--font-xs); color: var(--text-2); }
 
+  .mc-remaining {
+    font-size: var(--font-xs);
+    color: var(--text-3);
+    margin-top: var(--space-3);
+    letter-spacing: -0.01em;
+  }
+  .mc-remaining.mc-over { font-weight: 500; }
+
+  .trend-section { margin-bottom: var(--space-8); }
+  .section-head { margin-bottom: var(--space-4); }
+  .section-label {
+    font-size: var(--font-xs);
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+
+  .trend-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+  }
+
+  .trend-card {
+    background: var(--bg-1);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+  }
+
+  .tc-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+  }
+  .tc-label {
+    font-size: var(--font-xs);
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+  .tc-avg { font-size: var(--font-sm); font-weight: 500; }
+
+  .tc-bars {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--space-2);
+    align-items: end;
+  }
+
+  .tc-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .tc-bar-track {
+    width: 100%;
+    height: 48px;
+    background: var(--bg-3);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+  }
+
+  .tc-bar-fill {
+    width: 100%;
+    border-radius: var(--radius-sm);
+    transition: height 900ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .tc-bar-fill.tc-bar-over {
+    box-shadow: inset 0 2px 0 0 var(--text-0);
+  }
+
+  .tc-day {
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+    font-family: var(--font-mono);
+  }
+  .tc-day-today { color: var(--text-0); font-weight: 600; }
+
   .nav-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -379,11 +552,11 @@
   }
 
   @media (max-width: 1024px) {
-    .macro-row { grid-template-columns: repeat(2, 1fr); }
+    .macro-row, .trend-row { grid-template-columns: repeat(2, 1fr); }
     .nav-row { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 640px) {
-    .macro-row, .nav-row { grid-template-columns: 1fr; }
+    .macro-row, .trend-row, .nav-row { grid-template-columns: 1fr; }
     .dash-header { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
     .dash-name { font-size: var(--font-2xl); }
   }

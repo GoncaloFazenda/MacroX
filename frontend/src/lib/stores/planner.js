@@ -11,6 +11,14 @@ function createPlannerStore() {
   return {
     subscribe,
 
+    hydrateDaily(plan = null) {
+      update((s) => ({ ...s, dailyPlan: plan, loading: false }));
+    },
+
+    hydrateWeekly(plan = null) {
+      update((s) => ({ ...s, weeklyPlan: plan, loading: false }));
+    },
+
     async loadDaily(date) {
       update((s) => ({ ...s, loading: true }));
       try {

@@ -17,15 +17,21 @@
   import { flip } from "svelte/animate";
   import DateNav from "$lib/components/ui/DateNav.svelte";
   import SaveButton from "$lib/components/ui/SaveButton.svelte";
+  import ConfirmModal from "$lib/components/ui/ConfirmModal.svelte";
+
+  let { data } = $props();
 
   const FLIP_MS = 150;
   const DOCK_ZONE = "weekly-dock-zone";
   const DOCK_ITEM_ID = "dock-container";
+  const initialWeekStart = data.weekStart || getWeekStart();
 
-  let weekStart = $state(getWeekStart());
+  let weekStart = $state(initialWeekStart);
   let saving = $state(false);
   let saved = $state(false);
+  let ready = $state(true);
   let nextId = 1;
+  let storesHydrated = $state(false);
 
   // ── Undo & dirty tracking ──
   let savedSnapshot = $state(JSON.stringify(
@@ -33,7 +39,7 @@
   ));
   let history = $state([]);
   const MAX_HISTORY = 30;
-  const dirty = $derived(JSON.stringify(days.map(d => d.meals)) !== savedSnapshot);
+  const dirty = $derived(ready && JSON.stringify(days.map(d => d.meals)) !== savedSnapshot);
 
   function snapshotMeals() {
     return JSON.stringify(days.map(d => d.meals));
@@ -60,17 +66,20 @@
   let hoverDay = $state(-1);
   let selectedTemplate = $state(null);
   let dockSearch = $state('');
+  const foods = $derived(storesHydrated ? $foodStore.foods : data.foods);
+  const meals = $derived(storesHydrated ? $mealStore.meals : data.meals);
+  const templates = $derived(storesHydrated ? $dayTemplateStore.templates : data.templates);
 
   const filteredDockTemplates = $derived.by(() => {
     const q = dockSearch.trim().toLowerCase();
-    if (!q) return $dayTemplateStore.templates;
-    return $dayTemplateStore.templates.filter(t => {
+    if (!q) return templates;
+    return templates.filter(t => {
       if (t.name.toLowerCase().includes(q)) return true;
       for (const meal of t.meals || []) {
         for (const item of meal.items || []) {
           const name = item.type === 'food'
-            ? $foodStore.foods.find(f => f._id === item.refId)?.name || ''
-            : $mealStore.meals.find(m => m._id === item.refId)?.name || '';
+            ? foods.find(f => f._id === item.refId)?.name || ''
+            : meals.find(m => m._id === item.refId)?.name || '';
           if (name.toLowerCase().includes(q)) return true;
         }
       }
@@ -108,74 +117,77 @@
   };
   const slotOrder = ["breakfast", "lunch", "dinner", "snack"];
 
-  let days = $state(
-    Array.from({ length: 7 }, (_, i) => ({
-      dayOfWeek: i,
-      meals: { breakfast: [], lunch: [], dinner: [], snack: [] },
-      templateName: null,
-    })),
-  );
-  const dayNames = getDayNames();
-
-  onMount(async () => {
-    await Promise.all([
-      foodStore.load({ limit: 200 }),
-      mealStore.load(),
-      dayTemplateStore.load(),
-    ]);
-    await loadPlan();
-  });
-
-  async function loadPlan() {
-    await plannerStore.loadWeekly(weekStart);
-    const plan = $plannerStore.weeklyPlan;
-    if (plan?.days) {
-      days = Array.from({ length: 7 }, (_, i) => {
-        const dayData = plan.days.find((d) => d.dayOfWeek === i);
-        if (!dayData)
-          return {
-            dayOfWeek: i,
-            meals: { breakfast: [], lunch: [], dinner: [], snack: [] },
-            templateName: null,
-          };
-        const meals = { breakfast: [], lunch: [], dinner: [], snack: [] };
-        for (const meal of dayData.meals || []) {
-          if (meals[meal.slot]) {
-            meals[meal.slot] = meal.items.map((item) => ({
-              id: nextId++,
-              type: item.type,
-              refId: item.refId,
-              quantity: item.quantity,
-              name: getName(item),
-              cal: getCal(item),
-            }));
-          }
-        }
-        return { dayOfWeek: i, meals, templateName: null };
-      });
-    } else {
-      days = Array.from({ length: 7 }, (_, i) => ({
-        dayOfWeek: i,
-        meals: { breakfast: [], lunch: [], dinner: [], snack: [] },
-        templateName: null,
-      }));
-    }
-    takeSavedSnapshot();
-  }
-
   function getName(item) {
     if (item.type === "food")
-      return $foodStore.foods.find((f) => f._id === item.refId)?.name || "?";
-    return $mealStore.meals.find((m) => m._id === item.refId)?.name || "?";
+      return foods.find((f) => f._id === item.refId)?.name || "?";
+    return meals.find((m) => m._id === item.refId)?.name || "?";
   }
   function getCal(item) {
     const mult = item.quantity / 100;
     if (item.type === "food") {
-      const f = $foodStore.foods.find((f) => f._id === item.refId);
+      const f = foods.find((food) => food._id === item.refId);
       return Math.round((f?.calories || 0) * mult);
     }
-    const m = $mealStore.meals.find((m) => m._id === item.refId);
+    const m = meals.find((meal) => meal._id === item.refId);
     return Math.round((m?.totalMacros?.calories || 0) * mult);
+  }
+
+  function emptyDay(dayOfWeek) {
+    return {
+      dayOfWeek,
+      meals: { breakfast: [], lunch: [], dinner: [], snack: [] },
+      templateName: null,
+    };
+  }
+
+  function buildDays(plan) {
+    if (!plan?.days) {
+      return Array.from({ length: 7 }, (_, i) => emptyDay(i));
+    }
+
+    return Array.from({ length: 7 }, (_, i) => {
+      const dayData = plan.days.find((d) => d.dayOfWeek === i);
+      if (!dayData) return emptyDay(i);
+
+      const builtMeals = { breakfast: [], lunch: [], dinner: [], snack: [] };
+      for (const meal of dayData.meals || []) {
+        if (builtMeals[meal.slot]) {
+          builtMeals[meal.slot] = meal.items.map((item) => ({
+            id: nextId++,
+            type: item.type,
+            refId: item.refId,
+            quantity: item.quantity,
+            name: getName(item),
+            cal: getCal(item),
+          }));
+        }
+      }
+
+      return { dayOfWeek: i, meals: builtMeals, templateName: null };
+    });
+  }
+
+  const initialDays = buildDays(data.weeklyPlan);
+  let days = $state(initialDays);
+  const dayNames = getDayNames();
+
+  takeSavedSnapshot();
+
+  onMount(() => {
+    foodStore.hydrate(data.foods, data.foodPagination);
+    mealStore.hydrate(data.meals);
+    dayTemplateStore.hydrate(data.templates);
+    plannerStore.hydrateWeekly(data.weeklyPlan);
+    storesHydrated = true;
+  });
+
+  async function loadPlan() {
+    ready = false;
+    await plannerStore.loadWeekly(weekStart);
+    const plan = $plannerStore.weeklyPlan;
+    days = buildDays(plan);
+    takeSavedSnapshot();
+    ready = true;
   }
 
 
@@ -192,8 +204,8 @@
         cal += i.cal || 0;
         const ref =
           i.type === "food"
-            ? $foodStore.foods.find((f) => f._id === i.refId)
-            : $mealStore.meals.find((m) => m._id === i.refId);
+            ? foods.find((f) => f._id === i.refId)
+            : meals.find((m) => m._id === i.refId);
         if (ref) {
           const mult = i.quantity / 100;
           if (i.type === "food") {
@@ -456,8 +468,8 @@
       for (const i of items) {
         cal += i.cal || 0;
         const ref = i.type === 'food'
-          ? $foodStore.foods.find(f => f._id === i.refId)
-          : $mealStore.meals.find(m => m._id === i.refId);
+          ? foods.find(f => f._id === i.refId)
+          : meals.find(m => m._id === i.refId);
         if (ref) {
           const mult = (i.quantity || 100) / 100;
           if (i.type === 'food') {
@@ -568,7 +580,7 @@
         <span>Undo</span>
       </button>
     {/if}
-    <SaveButton dirty={dirty} saving={saving} onclick={savePlan} />
+    <SaveButton ready={ready} dirty={dirty} saving={saving} onclick={savePlan} />
   </div>
 
   {#if selectedTemplate}
@@ -786,6 +798,10 @@
         <span class="dock-label">Day Plans</span>
       </div>
       <div class="dock-right-items-wrapper">
+        <a href="/day?newPlan=1" class="btn btn-primary btn-sm dock-create">
+          <Plus size={13} strokeWidth={1.5} />
+          New Plan
+        </a>
 
         <div class="dock-search-wrapper">
 
@@ -819,7 +835,7 @@
     </div>
     </div>
     <div class="dock-cards">
-      {#if $dayTemplateStore.templates.length === 0}
+      {#if templates.length === 0}
         <p class="dock-empty">
           No day plans yet. <a href="/day" class="dock-link"
             >Create one in My Day</a
@@ -879,29 +895,15 @@
   </div>
 {/snippet}
 
-<!-- Confirmation Modal -->
-{#if confirmState.open}
-  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="modal-overlay" onclick={closeConfirm}>
-    <div class="modal-content" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-      <div class="cm-head">
-        <h2 class="cm-title">{confirmState.title}</h2>
-        <button class="btn btn-ghost btn-sm" onclick={closeConfirm}><X size={14} /></button>
-      </div>
-      <p class="cm-body">{confirmState.message}</p>
-      {#if confirmState.warning}
-        <div class="cm-warn">
-          <AlertTriangle size={14} strokeWidth={1.5} />
-          <span>{confirmState.warning}</span>
-        </div>
-      {/if}
-      <div class="cm-actions">
-        <button class="btn btn-ghost" onclick={closeConfirm}>Cancel</button>
-        <button class="btn {confirmState.warning ? 'btn-danger' : 'btn-primary'}" onclick={executeConfirm}>Confirm</button>
-      </div>
-    </div>
-  </div>
-{/if}
+<ConfirmModal
+  open={confirmState.open}
+  title={confirmState.title}
+  message={confirmState.message}
+  warning={confirmState.warning}
+  danger={!!confirmState.warning}
+  onconfirm={executeConfirm}
+  oncancel={closeConfirm}
+/>
 
 <!-- Toast -->
 {#if toast.visible}
@@ -1258,8 +1260,11 @@
   }
   .dock-right-items-wrapper {
     display: flex;
-    
+    align-items: center;
     gap: var(--space-3);
+  }
+  .dock-create {
+    flex-shrink: 0;
   }
   .dock-label {
     font-size: var(--font-sm);

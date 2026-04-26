@@ -10,6 +10,10 @@ function createDayTemplateStore() {
   return {
     subscribe,
 
+    hydrate(templates = []) {
+      set({ templates, loading: false });
+    },
+
     async load() {
       update((s) => ({ ...s, loading: true }));
       try {

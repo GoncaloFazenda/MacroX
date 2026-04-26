@@ -54,6 +54,7 @@ router.post('/register', async (req: AuthenticatedRequest, res: Response, next: 
         email: user.email,
         name: user.name,
         goals: user.goals,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
@@ -106,6 +107,7 @@ router.post('/login', async (req: AuthenticatedRequest, res: Response, next: Nex
         email: user.email,
         name: user.name,
         goals: user.goals,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
@@ -152,6 +154,7 @@ router.get('/me', authenticate, async (req: AuthenticatedRequest, res: Response,
         email: user.email,
         name: user.name,
         goals: user.goals,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
@@ -211,6 +214,7 @@ router.put('/goals', authenticate, async (req: AuthenticatedRequest, res: Respon
         email: user.email,
         name: user.name,
         goals: user.goals,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {

@@ -6,27 +6,25 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
 
-  let { children } = $props();
+  let { data, children } = $props();
 
   const publicRoutes = ['/login', '/register', '/'];
 
   onMount(() => {
     theme.init();
-    auth.init();
   });
 
   $effect(() => {
-    if (!$auth.loading && !$auth.user && !publicRoutes.includes($page.url.pathname)) {
-      // Don't redirect during loading, only when we know user is not authenticated
-    }
+    auth.hydrate(data.user ?? null);
   });
 
-  const showNav = $derived(!publicRoutes.includes($page.url.pathname) && $auth.user);
+  const currentUser = $derived(data.user ?? $auth.user);
+  const showNav = $derived(!publicRoutes.includes($page.url.pathname) && currentUser);
 </script>
 
 <div class="app-shell">
   {#if showNav}
-    <Navbar />
+    <Navbar user={currentUser} />
   {/if}
 
   <main class="main-content" class:with-nav={showNav}>
@@ -52,6 +50,7 @@
 
   .page-transition {
     animation: fadeIn 300ms ease-out;
+    min-height: 100%;
   }
 
   @keyframes fadeIn {

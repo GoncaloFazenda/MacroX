@@ -2,6 +2,8 @@
   import { foodStore } from '$lib/stores/foods.js';
   import { mealStore } from '$lib/stores/meals.js';
   import { onMount } from 'svelte';
+  import { slide } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import { Search, Plus, X, Trash2, UtensilsCrossed, Apple, Pencil, Star, ChevronDown, ArrowUp, ArrowDown } from 'lucide-svelte';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 
@@ -616,7 +618,7 @@
             </div>
 
             {#if expandedMealId === meal._id}
-              <div class="mc-items animate-fade-in">
+              <div class="mc-items" transition:slide={{ duration: 180, easing: cubicOut }}>
                 <div class="mci-head">
                   <span>Ingredients</span>
                 </div>

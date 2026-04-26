@@ -1,0 +1,332 @@
+[2m01:15:52[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m01:16:05[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:16:05[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:16:17[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:16:17[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:16:51[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:16:51[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:16:55[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:16:55[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:16:58[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:16:58[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:17:33[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:17:33[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:17:35[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:17:35[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:17:37[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:17:37[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:17:39[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:17:39[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:17:42[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:17:42[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:17:45[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:17:45[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:17:47[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:17:47[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:19:11[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m01:23:46[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m01:26:26[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:26:26[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:26:33[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:26:33[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:35:28[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m01:37:41[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m01:38:34[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:38:34[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:38:37[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:38:37[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:38:39[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:38:39[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:38:57[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:38:57[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:39:00[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:39:00[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:39:04[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:39:04[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:39:41[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:39:41[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:39:43[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:39:43[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:39:46[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:39:46[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:39:49[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[svelte] derived_inert
+Reading a derived belonging to a now-destroyed effect may result in stale values
+https://svelte.dev/e/derived_inert
+[2m01:39:49[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: $.get(...).map is not a function
+[39m > syncSuggestions src/routes/day/+page.svelte:269:31
+    267 |  
+    268 |    function syncSuggestions() {
+    269 |      suggDndItems = suggestions.map(f => ({
+        |                                 ^
+    270 |        id: `sg-${f._id}`, _id: f._id,
+    271 |        name: f.name, calories: f.calories, protein: f.protein,
+ > src/routes/day/+page.svelte:145:4
+
+[2m01:40:19[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m01:42:25[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m01:43:07[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m01:45:20[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m01:47:22[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m

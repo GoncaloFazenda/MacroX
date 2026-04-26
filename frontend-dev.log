@@ -1,0 +1,495 @@
+
+> macrox-frontend@1.0.0 dev
+> vite dev --host 127.0.0.1 --port 4173
+
+
+  [32m[1mVITE[22m v8.0.8[39m  [2mready in [0m[1m1059[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m4173[22m/[39m
+01:14:01 [vite-plugin-svelte] src/routes/overview/+page.svelte:263:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:14:01 [vite-plugin-svelte] src/routes/overview/+page.svelte:265:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:14:07 [vite-plugin-svelte] src/lib/components/ui/AnimatedNumber.svelte:10:23 This reference only captures the initial value of `initial`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:14:07 [vite-plugin-svelte] src/lib/components/ui/AnimatedNumber.svelte:12:19 This reference only captures the initial value of `initial`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:14:08 [vite-plugin-svelte] src/routes/overview/+page.svelte:263:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:14:08 [vite-plugin-svelte] src/routes/overview/+page.svelte:265:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:14:08 [vite-plugin-svelte] src/lib/components/ui/AnimatedNumber.svelte:10:23 This reference only captures the initial value of `initial`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:14:08 [vite-plugin-svelte] src/lib/components/ui/AnimatedNumber.svelte:12:19 This reference only captures the initial value of `initial`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:14:26 [vite-plugin-svelte] src/routes/day/+page.svelte:812:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:14:26 [vite-plugin-svelte] src/routes/day/+page.svelte:812:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:14:26 [vite-plugin-svelte] src/routes/day/+page.svelte:813:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:14:26 [vite-plugin-svelte] src/routes/day/+page.svelte:813:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:14:26 [vite-plugin-svelte] src/lib/components/ui/ConfirmModal.svelte:29:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:14:26 [vite-plugin-svelte] src/routes/day/+page.svelte:812:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:14:26 [vite-plugin-svelte] src/routes/day/+page.svelte:812:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:14:26 [vite-plugin-svelte] src/routes/day/+page.svelte:813:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:14:26 [vite-plugin-svelte] src/routes/day/+page.svelte:813:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:14:26 [vite-plugin-svelte] src/lib/components/ui/ConfirmModal.svelte:29:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+[2m01:15:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m01:15:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m01:15:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m01:15:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/7.js[22m
+[2m01:15:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m01:15:44[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m01:15:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m01:15:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:15:44[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:15:44[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.svelte[22m
+[2m01:19:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m01:19:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m01:19:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m01:19:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/7.js[22m
+[2m01:19:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m01:19:07[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m01:19:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m01:19:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:19:07[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:19:07[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.svelte[22m
+[2m01:23:31[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/overview/+page.svelte, /src/routes/day/+page.svelte[22m
+[2m01:23:31[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/stores/foods.js[22m
+[2m01:23:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/overview/+page.svelte, /src/routes/day/+page.svelte[22m
+[2m01:23:35[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/stores/meals.js[22m
+[2m01:23:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/day/+page.svelte[22m
+[2m01:23:38[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/stores/dayTemplates.js[22m
+[2m01:23:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m01:24:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m01:24:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m01:24:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m01:24:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/7.js[22m
+[2m01:24:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m01:24:07[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m01:24:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m01:24:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:24:07[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:24:07[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.svelte[22m
+01:24:30 [vite-plugin-svelte] src/routes/library/templates/+page.svelte:360:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:24:30 [vite-plugin-svelte] src/routes/library/templates/+page.svelte:361:4 Elements with the 'dialog' interactive role must have a tabindex value
+https://svelte.dev/e/a11y_interactive_supports_focus
+01:24:30 [vite-plugin-svelte] src/routes/library/templates/+page.svelte:360:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:24:30 [vite-plugin-svelte] src/routes/library/templates/+page.svelte:361:4 Elements with the 'dialog' interactive role must have a tabindex value
+https://svelte.dev/e/a11y_interactive_supports_focus
+[2m01:35:18[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/overview/+page.svelte, /src/routes/day/+page.svelte, /src/routes/library/templates/+page.svelte[22m
+[2m01:35:18[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/stores/planner.js[22m
+[2m01:35:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/7.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:37:38[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.svelte[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/7.js[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:37:58[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.svelte[22m
+01:38:15 [vite-plugin-svelte] src/routes/week/+page.svelte:27:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:38:15 [vite-plugin-svelte] src/routes/week/+page.svelte:170:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:38:15 [vite-plugin-svelte] src/routes/week/+page.svelte:685:2 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+01:38:15 [vite-plugin-svelte] src/routes/week/+page.svelte:848:10 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:38:15 [vite-plugin-svelte] src/routes/week/+page.svelte:27:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:38:15 [vite-plugin-svelte] src/routes/week/+page.svelte:170:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:38:15 [vite-plugin-svelte] src/routes/week/+page.svelte:685:2 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+01:38:15 [vite-plugin-svelte] src/routes/week/+page.svelte:848:10 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+[2m01:40:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+01:41:25 [vite-plugin-svelte] src/routes/day/+page.svelte:814:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:41:25 [vite-plugin-svelte] src/routes/day/+page.svelte:814:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:41:25 [vite-plugin-svelte] src/routes/day/+page.svelte:815:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:41:25 [vite-plugin-svelte] src/routes/day/+page.svelte:815:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+[2m01:41:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/day/+page.svelte[22m
+[2m01:41:25[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/day/+page.svelte[22m
+01:41:34 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:34 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:34 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:34 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:34 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:34 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:34 [vite-plugin-svelte] src/routes/day/+page.svelte:809:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:41:34 [vite-plugin-svelte] src/routes/day/+page.svelte:809:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:41:34 [vite-plugin-svelte] src/routes/day/+page.svelte:810:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:41:34 [vite-plugin-svelte] src/routes/day/+page.svelte:810:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+[2m01:41:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/day/+page.svelte[22m
+[2m01:41:34[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/day/+page.svelte[22m
+01:41:40 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:40 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:40 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:40 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:40 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:40 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:40 [vite-plugin-svelte] src/routes/day/+page.svelte:817:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:41:40 [vite-plugin-svelte] src/routes/day/+page.svelte:817:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:41:40 [vite-plugin-svelte] src/routes/day/+page.svelte:818:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:41:40 [vite-plugin-svelte] src/routes/day/+page.svelte:818:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+[2m01:41:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/day/+page.svelte[22m
+[2m01:41:40[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/day/+page.svelte[22m
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:145:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:150:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:152:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:829:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:829:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:830:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:41:51 [vite-plugin-svelte] src/routes/day/+page.svelte:830:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+[2m01:41:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/day/+page.svelte[22m
+[2m01:41:51[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/day/+page.svelte[22m
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:145:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:150:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:152:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:813:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:813:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:814:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:42:06 [vite-plugin-svelte] src/routes/day/+page.svelte:814:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+[2m01:42:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/day/+page.svelte[22m
+[2m01:42:06[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/day/+page.svelte[22m
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:145:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:150:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:152:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:813:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:813:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:814:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:42:11 [vite-plugin-svelte] src/routes/day/+page.svelte:814:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+[2m01:42:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/day/+page.svelte[22m
+[2m01:42:11[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/day/+page.svelte[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/0.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/1.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/3.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/5.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/7.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/nodes/11.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/server/internal.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/matchers.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.js[22m
+[2m01:42:22[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/root.svelte[22m
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:145:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:150:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:152:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:813:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:813:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:814:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:814:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:145:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:150:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:152:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:813:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:813:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:814:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:42:38 [vite-plugin-svelte] src/routes/day/+page.svelte:814:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:148:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:153:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:155:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:816:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:816:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:817:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:817:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+[2m01:46:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/day/+page.svelte[22m
+[2m01:46:16[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/day/+page.svelte[22m
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:148:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:153:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:155:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:816:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:816:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:817:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:16 [vite-plugin-svelte] src/routes/day/+page.svelte:817:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:148:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:153:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:155:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:819:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:819:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:820:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:820:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+[2m01:46:21[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/day/+page.svelte[22m
+[2m01:46:21[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/day/+page.svelte[22m
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:148:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:153:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:155:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:819:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:819:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:820:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:21 [vite-plugin-svelte] src/routes/day/+page.svelte:820:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:148:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:153:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:155:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:822:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:822:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:823:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:823:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+[2m01:46:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/day/+page.svelte[22m
+[2m01:46:33[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/day/+page.svelte[22m
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:24:27 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:37:28 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:38:29 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:39:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:40:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:41:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:148:6 This reference only captures the initial value of `isNewTemplate`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:153:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:155:32 This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:822:2 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:822:2 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:823:4 Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events
+01:46:33 [vite-plugin-svelte] src/routes/day/+page.svelte:823:4 `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions

@@ -5,9 +5,12 @@
   import { plannerStore } from '$lib/stores/planner.js';
   import { onMount } from 'svelte';
   import { Trash2, Plus, Search, CalendarCheck, Pencil, X, Check, AlertTriangle, ArrowUp, ArrowDown } from 'lucide-svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 
-  let loading = $state(true);
+  let { data } = $props();
+
   let searchQuery = $state('');
+  let storesHydrated = $state(false);
 
   // Sort
   let sortKey = $state('recent'); // 'recent' | 'name' | 'calories' | 'protein'
@@ -30,6 +33,7 @@
   // Modal
   let confirmModal = $state({ open: false, template: null, hasExisting: false });
   let confirmLoading = $state(false);
+  let deleteConfirm = $state({ open: false, id: null, name: '' });
 
   // Toast
   let toast = $state({ visible: false, message: '', type: 'success' });
@@ -38,24 +42,35 @@
   const slotLabels = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
   const slotOrder = ['breakfast', 'lunch', 'dinner', 'snack'];
 
-  onMount(async () => {
-    loading = true;
-    await Promise.all([
-      foodStore.load({ limit: 200 }),
-      mealStore.load(),
-      dayTemplateStore.load(),
-    ]);
-    loading = false;
+  const foods = $derived(storesHydrated ? $foodStore.foods : data.foods);
+  const meals = $derived(storesHydrated ? $mealStore.meals : data.meals);
+  const templates = $derived(storesHydrated ? $dayTemplateStore.templates : data.templates);
+
+  onMount(() => {
+    foodStore.hydrate(data.foods, data.foodPagination);
+    mealStore.hydrate(data.meals);
+    dayTemplateStore.hydrate(data.templates);
+    storesHydrated = true;
   });
 
-  async function deleteTemplate(id) {
-    if (!confirm('Delete this day plan?')) return;
-    await dayTemplateStore.remove(id);
+  async function deleteTemplate() {
+    if (!deleteConfirm.id) return;
+    try {
+      await dayTemplateStore.remove(deleteConfirm.id);
+      showToast(`${deleteConfirm.name} deleted`);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    deleteConfirm = { open: false, id: null, name: '' };
+  }
+
+  function askDeleteTemplate(template) {
+    deleteConfirm = { open: true, id: template._id, name: template.name };
   }
 
   function getName(item) {
-    if (item.type === 'food') return $foodStore.foods.find(f => f._id === item.refId)?.name || '?';
-    return $mealStore.meals.find(m => m._id === item.refId)?.name || '?';
+    if (item.type === 'food') return foods.find(f => f._id === item.refId)?.name || '?';
+    return meals.find(m => m._id === item.refId)?.name || '?';
   }
 
   function getTotalFoods(template) {
@@ -68,7 +83,7 @@
 
   const filteredTemplates = $derived.by(() => {
     const q = searchQuery.trim().toLowerCase();
-    let list = $dayTemplateStore.templates.slice();
+    let list = templates.slice();
     if (q) {
       list = list.filter(t => {
         if (t.name.toLowerCase().includes(q)) return true;
@@ -92,7 +107,7 @@
   });
 
   const libraryStats = $derived.by(() => {
-    const tpls = $dayTemplateStore.templates;
+    const tpls = templates;
     if (!tpls.length) return null;
     const totalCal = tpls.reduce((s, t) => s + (t.totalMacros?.calories || 0), 0);
     const totalPro = tpls.reduce((s, t) => s + (t.totalMacros?.protein || 0), 0);
@@ -173,14 +188,7 @@
     <a href="/day?newPlan=1" class="btn btn-primary btn-sm"><Plus size={14} strokeWidth={1.5} />New Day Plan</a>
   </div>
 
-  {#if loading}
-    <div class="skeleton" style="height: 44px; max-width: 320px; margin-bottom: var(--space-5);"></div>
-    <div class="grid-sk">
-      {#each [1,2,3] as _}
-        <div class="skeleton" style="height: 300px;"></div>
-      {/each}
-    </div>
-  {:else if $dayTemplateStore.templates.length === 0}
+  {#if templates.length === 0}
     <div class="empty-state">
       <p class="empty-state-text">No day plans yet.</p>
       <a href="/day?newPlan=1" class="btn btn-primary btn-sm" style="margin-top: var(--space-3);"><Plus size={14} strokeWidth={1.5} />New Day Plan</a>
@@ -277,7 +285,7 @@
             <div class="card-head">
               <div class="card-title-row">
                 <span class="card-name">{t.name}</span>
-                <button class="card-del" onclick={() => deleteTemplate(t._id)} aria-label="Delete">
+                <button class="card-del" onclick={() => askDeleteTemplate(t)} aria-label="Delete">
                   <Trash2 size={13} strokeWidth={1.5} />
                 </button>
               </div>
@@ -334,6 +342,17 @@
     {/if}
   {/if}
 </div>
+
+<ConfirmModal
+  open={deleteConfirm.open}
+  title="Delete day plan?"
+  message={deleteConfirm.name ? `Delete "${deleteConfirm.name}"?` : ''}
+  warning="This cannot be undone."
+  confirmText="Delete"
+  danger={true}
+  onconfirm={deleteTemplate}
+  oncancel={() => (deleteConfirm = { open: false, id: null, name: '' })}
+/>
 
 <!-- Confirmation Modal -->
 {#if confirmModal.open}

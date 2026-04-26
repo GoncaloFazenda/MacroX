@@ -11,6 +11,10 @@ function createFoodStore() {
   return {
     subscribe,
 
+    hydrate(foods = [], pagination = null) {
+      set({ foods, loading: false, pagination });
+    },
+
     async load(params = {}) {
       update((s) => ({ ...s, loading: true }));
       try {

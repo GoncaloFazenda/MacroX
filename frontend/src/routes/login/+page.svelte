@@ -1,6 +1,5 @@
 <script>
   import { auth } from '$lib/stores/auth.js';
-  import { goto } from '$app/navigation';
   import { Eye, EyeOff, ArrowRight } from 'lucide-svelte';
 
   let email = $state('');
@@ -12,7 +11,7 @@
     e.preventDefault();
     submitting = true;
     const success = await auth.login(email, password);
-    if (success) goto('/overview');
+    if (success) window.location.href = '/overview';
     submitting = false;
   }
 </script>

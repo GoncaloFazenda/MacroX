@@ -4,6 +4,7 @@
   import { theme } from '$lib/stores/theme.js';
   import { Sun, Moon, Cloud, LogOut, Menu, X, ChevronDown } from 'lucide-svelte';
 
+  let { user = null } = $props();
   let mobileOpen = $state(false);
   let libraryOpen = $state(false);
   let libraryTimeout;
@@ -48,6 +49,15 @@
         >{item.label}</a>
       {/each}
 
+      {#if user}
+        <a
+          href="/profile"
+          class="nav-link mobile-profile"
+          class:active={isActive('/profile')}
+          onclick={() => mobileOpen = false}
+        >Profile</a>
+      {/if}
+
       <!-- Library dropdown (desktop) -->
       <div
         class="lib-wrap"
@@ -90,8 +100,8 @@
         {/if}
       </button>
 
-      {#if $auth.user}
-        <span class="user-name">{$auth.user.name}</span>
+      {#if user}
+        <a href="/profile" class="user-link" aria-label="Open profile">{user.name}</a>
         <button class="btn btn-ghost btn-sm" onclick={handleLogout} aria-label="Log out">
           <LogOut size={16} strokeWidth={1.5} />
         </button>
@@ -230,11 +240,14 @@
     padding: 0;
   }
 
-  .user-name {
+  .user-link {
     font-size: var(--font-sm);
     color: var(--text-2);
     font-weight: 500;
+    transition: color var(--transition-fast);
   }
+  .user-link:hover { color: var(--text-0); }
+  .mobile-profile { display: none; }
 
   .mobile-toggle { display: none; }
 
@@ -264,6 +277,7 @@
       animation: none;
     }
     .mobile-toggle { display: flex; }
-    .user-name { display: none; }
+    .user-link { display: none; }
+    .mobile-profile { display: flex; }
   }
 </style>

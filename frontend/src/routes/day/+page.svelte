@@ -16,34 +16,37 @@
   import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
   import { flip } from 'svelte/animate';
 
+  let { data } = $props();
+
   const FLIP_MS = 150;
   const ZONE = 'planner';
 
-  // Read URL params (used by weekly planner links and templates page)
-  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-  const urlDate = urlParams?.get('date');
-  const urlTemplateId = urlParams?.get('templateId');
-  const urlNewPlan = urlParams?.get('newPlan') === '1';
-
-  let currentDate = $state(urlDate || formatDate(new Date()));
+  let currentDate = $state(data.currentDate);
   let search = $state('');
   let activeCategory = $state('All');
   let activeSlot = $state('breakfast');
   let saving = $state(false);
   let mounted = $state(false);
+  let ready = $state(true);
   let nextId = 1;
+  let pendingNavigation = $state(null);
+  let allowNextNavigation = false;
+  let storesHydrated = $state(false);
 
   // ── Template-edit / new-plan mode ──
-  let templateMode = $state(!!urlTemplateId || urlNewPlan);
-  let isNewTemplate = $state(urlNewPlan);
-  let editingTemplateId = $state(urlTemplateId || null);
-  let templateNameValue = $state('');
-  let editingTemplateName = $state(urlNewPlan); // open name editor immediately when creating
+  let templateMode = $state(data.templateMode);
+  let isNewTemplate = $state(data.isNewTemplate);
+  let editingTemplateId = $state(data.editingTemplateId);
+  let templateNameValue = $state(data.template?.name || '');
+  let editingTemplateName = $state(data.isNewTemplate); // open name editor immediately when creating
   let templateNameDraft = $state('');
 
   // ── Dirty tracking ──
-  let savedSnapshot = $state('');
-  const dirty = $derived(snapshot() !== savedSnapshot);
+  let savedSnapshot = $state(JSON.stringify({
+    slots: { breakfast: [], lunch: [], dinner: [], snack: [] },
+    name: null,
+  }));
+  const dirty = $derived(ready && snapshot() !== savedSnapshot);
 
   function snapshot() {
     return JSON.stringify({
@@ -82,14 +85,41 @@
   beforeNavigate(({ cancel, to }) => {
     // Skip the guard for in-page hash changes
     if (to?.url.pathname === $page.url.pathname && to?.url.search === $page.url.search) return;
-    if (dirty && !confirm('You have unsaved changes. Leave without saving?')) {
+    if (allowNextNavigation) {
+      allowNextNavigation = false;
+      return;
+    }
+    if (dirty) {
       cancel();
+      pendingNavigation = to?.url ? `${to.url.pathname}${to.url.search}${to.url.hash}` : '/overview';
+      openConfirm({
+        title: 'Discard these edits?',
+        message: 'This day still has unsaved changes.',
+        warning: 'Leaving now will remove the edits you made since the last save.',
+        confirmText: 'Discard edits',
+        cancelText: 'Keep editing',
+        danger: true,
+        onConfirm: async () => {
+          const target = pendingNavigation;
+          pendingNavigation = null;
+          allowNextNavigation = true;
+          await goto(target || '/overview');
+        },
+      });
     }
   });
 
   const categories = ['All', 'Protein', 'Vegetable', 'Fruit', 'Grain', 'Dairy', 'Fat & Oil', 'Nut & Seed', 'Legume', 'Beverage', 'Condiment', 'Other'];
 
-  let slots = $state({ breakfast: [], lunch: [], dinner: [], snack: [] });
+  const foods = $derived(storesHydrated ? $foodStore.foods : data.foods);
+  const meals = $derived(storesHydrated ? $mealStore.meals : data.meals);
+  const templates = $derived(storesHydrated ? $dayTemplateStore.templates : data.templates);
+
+  function emptySlots() {
+    return { breakfast: [], lunch: [], dinner: [], snack: [] };
+  }
+
+  let slots = $state(emptySlots());
   const slotLabels = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
 
   const goals = $derived($auth.user?.goals || { calories: 2000, protein: 150, netCarbs: 100, fat: 65 });
@@ -102,39 +132,9 @@
   // Track which items were just added (for flash animation)
   let flashItems = $state(new Set());
 
-  onMount(async () => {
-    await Promise.all([
-      foodStore.load({ limit: 200 }),
-      mealStore.load(),
-      templateMode && !isNewTemplate ? dayTemplateStore.load() : Promise.resolve(),
-    ]);
-    syncSources();
-    if (isNewTemplate) {
-      // Empty state for new plan creation; user gets blank slots and an immediate name editor
-      slots = { breakfast: [], lunch: [], dinner: [], snack: [] };
-      templateNameValue = '';
-      templateNameDraft = '';
-    } else if (templateMode) {
-      await loadTemplate();
-    } else {
-      await loadPlan();
-    }
-    takeSavedSnapshot();
-    syncSuggestions();
-    setTimeout(() => mounted = true, 50);
-  });
-
-  async function loadTemplate() {
-    const tpl = $dayTemplateStore.templates.find(t => t._id === editingTemplateId);
-    if (!tpl) {
-      showToast('Day plan not found', 'error');
-      slots = { breakfast: [], lunch: [], dinner: [], snack: [] };
-      templateNameValue = '';
-      return;
-    }
-    templateNameValue = tpl.name;
-    const newSlots = { breakfast: [], lunch: [], dinner: [], snack: [] };
-    for (const meal of (tpl.meals || [])) {
+  function buildSlotsFromMeals(sourceMeals) {
+    const newSlots = emptySlots();
+    for (const meal of sourceMeals || []) {
       if (newSlots[meal.slot]) {
         newSlots[meal.slot] = meal.items.map(item => ({
           id: nextId++, type: item.type, refId: item.refId, quantity: item.quantity,
@@ -142,21 +142,58 @@
         }));
       }
     }
-    slots = newSlots;
+    return newSlots;
+  }
+
+  if (isNewTemplate) {
+    slots = emptySlots();
+    templateNameValue = '';
+    templateNameDraft = '';
+  } else if (templateMode) {
+    slots = buildSlotsFromMeals(data.template?.meals || []);
+  } else {
+    slots = buildSlotsFromMeals(data.dailyPlan?.meals || []);
+  }
+
+  onMount(() => {
+    foodStore.hydrate(data.foods, data.foodPagination);
+    mealStore.hydrate(data.meals);
+    dayTemplateStore.hydrate(data.templates);
+    plannerStore.hydrateDaily(data.dailyPlan);
+    storesHydrated = true;
+    syncSources();
+    takeSavedSnapshot();
+    syncSuggestions();
+    setTimeout(() => mounted = true, 50);
+  });
+
+  async function loadTemplate() {
+    const tpl = templates.find(t => t._id === editingTemplateId);
+    if (!tpl) {
+      showToast('Day plan not found', 'error');
+      slots = emptySlots();
+      templateNameValue = '';
+      return;
+    }
+    templateNameValue = tpl.name;
+    slots = buildSlotsFromMeals(tpl.meals || []);
   }
 
   function syncSources() {
     const q = search.toLowerCase();
-    const filtered = $foodStore.foods.filter(f =>
+    const filtered = foods.filter(f =>
       f.name.toLowerCase().includes(q) &&
       (activeCategory === 'All' || f.category === activeCategory)
     );
     foodDndItems = filtered.slice(0, 50).map(f => ({
       id: `sf-${f._id}`, _id: f._id,
-      name: f.name, calories: f.calories, protein: f.protein,
-      netCarbs: f.netCarbs, fat: f.fat, category: f.category,
+      name: f.name, calories: Math.round(f.calories),
+      protein: Math.round(f.protein * 10) / 10,
+      netCarbs: Math.round(f.netCarbs * 10) / 10,
+      fat: Math.round(f.fat * 10) / 10,
+      category: f.category,
     }));
-    mealDndItems = $mealStore.meals.map(m => ({
+    mealDndItems = meals.map(m => ({
       id: `sm-${m._id}`, _id: m._id,
       name: m.name, calories: Math.round(m.totalMacros?.calories || 0),
       protein: Math.round(m.totalMacros?.protein || 0),
@@ -166,28 +203,21 @@
   }
 
   async function loadPlan() {
+    ready = false;
     await plannerStore.loadDaily(currentDate);
     const plan = $plannerStore.dailyPlan;
     if (plan?.meals) {
-      const newSlots = { breakfast: [], lunch: [], dinner: [], snack: [] };
-      for (const meal of plan.meals) {
-        if (newSlots[meal.slot]) {
-          newSlots[meal.slot] = meal.items.map(item => ({
-            id: nextId++, type: item.type, refId: item.refId, quantity: item.quantity,
-            ...getItemMacros(item),
-          }));
-        }
-      }
-      slots = newSlots;
+      slots = buildSlotsFromMeals(plan.meals);
     } else {
-      slots = { breakfast: [], lunch: [], dinner: [], snack: [] };
+      slots = emptySlots();
     }
+    ready = true;
   }
 
   function getItemMacros(item) {
     const mult = item.quantity / 100;
     if (item.type === 'food') {
-      const f = $foodStore.foods.find(fd => fd._id === item.refId);
+      const f = foods.find(fd => fd._id === item.refId);
       return {
         name: f?.name || 'Unknown', cal: Math.round((f?.calories || 0) * mult),
         protein: Math.round((f?.protein || 0) * mult * 10) / 10,
@@ -195,7 +225,7 @@
         fat: Math.round((f?.fat || 0) * mult * 10) / 10,
       };
     }
-    const m = $mealStore.meals.find(ml => ml._id === item.refId);
+    const m = meals.find(ml => ml._id === item.refId);
     const tm = m?.totalMacros || {};
     return {
       name: m?.name || 'Unknown', cal: Math.round((tm.calories || 0) * mult),
@@ -226,7 +256,7 @@
       fat: goals.fat != null ? goals.fat - totals.fat : Infinity,
     };
     if (rem.cal <= 50) return [];
-    return $foodStore.foods
+    return foods
       .filter(f =>
         f.calories > 0 &&
         f.calories <= rem.cal &&
@@ -245,8 +275,11 @@
   function syncSuggestions() {
     suggDndItems = suggestions.map(f => ({
       id: `sg-${f._id}`, _id: f._id,
-      name: f.name, calories: f.calories, protein: f.protein,
-      netCarbs: f.netCarbs, fat: f.fat, category: f.category,
+      name: f.name, calories: Math.round(f.calories),
+      protein: Math.round(f.protein * 10) / 10,
+      netCarbs: Math.round(f.netCarbs * 10) / 10,
+      fat: Math.round(f.fat * 10) / 10,
+      category: f.category,
     }));
   }
 
@@ -301,7 +334,7 @@
       if (item[SHADOW_ITEM_MARKER_PROPERTY_NAME]) return item;
       const sid = String(item.id);
       if (sid.startsWith('sf-') || sid.startsWith('sg-')) {
-        const food = $foodStore.foods.find(f => f._id === item._id);
+        const food = foods.find(f => f._id === item._id);
         const id = nextId++;
         flashItem(id);
         return {
@@ -314,7 +347,7 @@
         };
       }
       if (sid.startsWith('sm-')) {
-        const meal = $mealStore.meals.find(m => m._id === item._id);
+        const meal = meals.find(m => m._id === item._id);
         const tm = meal?.totalMacros || {};
         const id = nextId++;
         flashItem(id);
@@ -339,7 +372,7 @@
     if (!item) return;
     const mult = newQty / 100;
     if (item.type === 'food') {
-      const food = $foodStore.foods.find(f => f._id === item.refId);
+      const food = foods.find(f => f._id === item.refId);
       if (food) {
         item.quantity = newQty;
         item.cal = Math.round(food.calories * mult);
@@ -348,7 +381,7 @@
         item.fat = Math.round(food.fat * mult * 10) / 10;
       }
     } else {
-      const meal = $mealStore.meals.find(m => m._id === item.refId);
+      const meal = meals.find(m => m._id === item.refId);
       if (meal?.totalMacros) {
         item.quantity = newQty;
         item.cal = Math.round(meal.totalMacros.calories * mult);
@@ -536,7 +569,7 @@
             <Copy size={13} strokeWidth={1.5} />Save a Copy
           </button>
         {/if}
-        <SaveButton dirty={dirty} saving={saving} onclick={savePlan} />
+        <SaveButton ready={ready} dirty={dirty} saving={saving} onclick={savePlan} />
       </div>
     </div>
 
@@ -583,7 +616,7 @@
         <button class="btn btn-secondary btn-sm" onclick={openTemplateModal} type="button">
           <Bookmark size={13} strokeWidth={1.5} />Save as Template
         </button>
-        <SaveButton dirty={dirty} saving={saving} onclick={savePlan} />
+        <SaveButton ready={ready} dirty={dirty} saving={saving} onclick={savePlan} />
       </div>
     </div>
     <DateNav date={currentDate} onprev={prevDay} onnext={nextDay} class="animate-slide-up stagger-1" style="margin-bottom: var(--space-5)" />

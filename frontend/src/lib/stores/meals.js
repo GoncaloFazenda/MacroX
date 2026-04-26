@@ -10,6 +10,10 @@ function createMealStore() {
   return {
     subscribe,
 
+    hydrate(meals = []) {
+      set({ meals, loading: false });
+    },
+
     async load() {
       update((s) => ({ ...s, loading: true }));
       try {

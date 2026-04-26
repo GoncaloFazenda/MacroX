@@ -1,0 +1,5 @@
+
+> macrox-backend@1.0.0 dev
+> tsx watch src/server.ts
+
+✓ MongoDB connected successfully

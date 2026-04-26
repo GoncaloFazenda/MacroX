@@ -11,6 +11,10 @@ function createAuthStore() {
   return {
     subscribe,
 
+    hydrate(user) {
+      set({ user, loading: false, error: null });
+    },
+
     async init() {
       try {
         const data = await api.get('/auth/me');

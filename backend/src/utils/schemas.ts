@@ -25,6 +25,16 @@ export const updateGoalsSchema = z.object({
   goals: goalsSchema,
 });
 
+export const updateProfileSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100),
+  email: z.string().email('Invalid email address'),
+});
+
+export const updatePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(6, 'New password must be at least 6 characters'),
+});
+
 // ─── Food ───────────────────────────────────────────
 export const foodCategories = [
   'Protein',

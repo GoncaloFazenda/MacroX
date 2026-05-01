@@ -330,3 +330,232 @@ https://svelte.dev/e/derived_inert
 [39m
 [2m01:47:22[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
 [39m
+[2m01:59:50[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m02:00:45[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m02:05:13[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m02:07:50[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m02:08:09[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mSvelte error[22m: each_key_duplicate
+Keyed each block has duplicate key `2` at indexes 1 and 2
+https://svelte.dev/e/each_key_duplicate
+
+	in <unknown>
+	in +page.svelte
+	in +layout.svelte
+	in root.svelte
+	in undefined
+
+[39m > each_key_duplicate node_modules/svelte/src/internal/client/errors.js:138:16
+ > validate_each_keys node_modules/svelte/src/internal/client/dom/blocks/each.js:765:3
+ > node_modules/svelte/src/internal/client/dom/blocks/each.js:351:4
+ > update_reaction node_modules/svelte/src/internal/client/runtime.js:259:15
+ > update_effect node_modules/svelte/src/internal/client/runtime.js:468:17
+ > #traverse node_modules/svelte/src/internal/client/reactivity/batch.js:402:5
+ > #process node_modules/svelte/src/internal/client/reactivity/batch.js:297:19
+ > Batch.flush node_modules/svelte/src/internal/client/reactivity/batch.js:474:3
+ > Array.<anonymous> node_modules/svelte/src/internal/client/reactivity/batch.js:724:12
+ > run_all node_modules/svelte/src/internal/shared/utils.js:47:6
+
+[2m02:08:10[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mSvelte error[22m: each_key_duplicate
+Keyed each block has duplicate key `2` at indexes 1 and 2
+https://svelte.dev/e/each_key_duplicate
+
+	in <unknown>
+	in +page.svelte
+	in +layout.svelte
+	in root.svelte
+	in undefined
+
+[39m > each_key_duplicate node_modules/svelte/src/internal/client/errors.js:138:16
+ > validate_each_keys node_modules/svelte/src/internal/client/dom/blocks/each.js:765:3
+ > node_modules/svelte/src/internal/client/dom/blocks/each.js:351:4
+ > update_reaction node_modules/svelte/src/internal/client/runtime.js:259:15
+ > update_effect node_modules/svelte/src/internal/client/runtime.js:468:17
+ > #traverse node_modules/svelte/src/internal/client/reactivity/batch.js:402:5
+ > #process node_modules/svelte/src/internal/client/reactivity/batch.js:297:19
+ > Batch.flush node_modules/svelte/src/internal/client/reactivity/batch.js:474:3
+ > Array.<anonymous> node_modules/svelte/src/internal/client/reactivity/batch.js:724:12
+ > run_all node_modules/svelte/src/internal/shared/utils.js:47:6
+
+[2m13:59:25[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m13:59:49[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mSvelte error[22m: each_key_duplicate
+Keyed each block has duplicate key `2` at indexes 1 and 2
+https://svelte.dev/e/each_key_duplicate
+
+	in <unknown>
+	in +page.svelte
+	in +layout.svelte
+	in root.svelte
+	in undefined
+
+[39m > each_key_duplicate node_modules/svelte/src/internal/client/errors.js:138:16
+ > validate_each_keys node_modules/svelte/src/internal/client/dom/blocks/each.js:765:3
+ > node_modules/svelte/src/internal/client/dom/blocks/each.js:351:4
+ > update_reaction node_modules/svelte/src/internal/client/runtime.js:259:15
+ > update_effect node_modules/svelte/src/internal/client/runtime.js:468:17
+ > #traverse node_modules/svelte/src/internal/client/reactivity/batch.js:402:5
+ > #process node_modules/svelte/src/internal/client/reactivity/batch.js:297:19
+ > Batch.flush node_modules/svelte/src/internal/client/reactivity/batch.js:474:3
+ > Array.<anonymous> node_modules/svelte/src/internal/client/reactivity/batch.js:724:12
+ > run_all node_modules/svelte/src/internal/shared/utils.js:47:6
+
+[2m14:03:38[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m14:07:58[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m14:08:01[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m14:08:01[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mFailed to hydrate:  HierarchyRequestError: Failed to execute 'appendChild' on 'Node': This node type does not support this method.
+    at Module.child (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:3917:43)
+    at _page (http://localhost:5173/src/routes/profile/+page.svelte?t=1777208618013:236:15)
+    at http://localhost:5173/node_modules/.vite/deps/client-DRtZGaDL.js?v=117ab468:698:62
+    at update_reaction (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4768:16)
+    at update_effect (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4868:18)
+    at create_effect (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4193:4)
+    at branch (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4402:9)
+    at http://localhost:5173/node_modules/.vite/deps/client-DRtZGaDL.js?v=117ab468:695:13
+    at update_reaction (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4768:16)
+    at update_effect (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4868:18)
+[2m14:08:04[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m14:08:23[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m14:08:29[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m14:08:29[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mFailed to hydrate:  HierarchyRequestError: Failed to execute 'appendChild' on 'Node': This node type does not support this method.
+    at Module.child (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:3917:43)
+    at _page (http://localhost:5173/src/routes/profile/+page.svelte?t=1777208618013:236:15)
+    at http://localhost:5173/node_modules/.vite/deps/client-DRtZGaDL.js?v=117ab468:698:62
+    at update_reaction (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4768:16)
+    at update_effect (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4868:18)
+    at create_effect (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4193:4)
+    at branch (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4402:9)
+    at http://localhost:5173/node_modules/.vite/deps/client-DRtZGaDL.js?v=117ab468:695:13
+    at update_reaction (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4768:16)
+    at update_effect (http://localhost:5173/node_modules/.vite/deps/runtime-C0d4kMpv.js?v=117ab468:4868:18)
+[2m14:15:31[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mReferenceError[22m: GripVertical is not defined
+
+	in <unknown>
+	in +page.svelte
+	in +layout.svelte
+	in root.svelte
+	in undefined
+
+[39m > $.add_svelte_meta.componentTag src/routes/day/+page.svelte:717:36
+    715 |            {#each foodDndItems as item (item.id)}
+    716 |              <div class="food-card food-card-draggable" animate:flip={{ duration: FLIP_MS }}>
+    717 |                <div class="fc-grip"><GripVertical size={11} strokeWidth={1.5} /></div>
+        |                                      ^
+    718 |                <div class="fc-content">
+    719 |                  <span class="fc-name">{item.name}</span>
+ > Module.add_svelte_meta node_modules/svelte/src/internal/client/context.js:49:9
+ > src/routes/day/+page.svelte?t=1777209330687:1803:6
+ > node_modules/svelte/src/internal/client/dom/blocks/each.js:689:3
+ > update_reaction node_modules/svelte/src/internal/client/runtime.js:259:15
+ > update_effect node_modules/svelte/src/internal/client/runtime.js:468:17
+ > create_effect node_modules/svelte/src/internal/client/reactivity/effects.js:138:3
+ > branch node_modules/svelte/src/internal/client/reactivity/effects.js:440:8
+ > create_item node_modules/svelte/src/internal/client/dom/blocks/each.js:688:5
+ > node_modules/svelte/src/internal/client/dom/blocks/each.js:319:11
+
+[2m14:34:16[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m21:49:43[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m21:49:43[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m21:51:11[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m21:51:11[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m21:51:11[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m21:52:15[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m21:52:32[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m22:03:03[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m22:03:28[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mAvoid using `history.pushState(...)` and `history.replaceState(...)` as these will conflict with SvelteKit's router. Use the `pushState` and `replaceState` imports from `$app/navigation` instead.
+[2m22:06:45[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m22:08:00[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mAvoid using `history.pushState(...)` and `history.replaceState(...)` as these will conflict with SvelteKit's router. Use the `pushState` and `replaceState` imports from `$app/navigation` instead.
+[2m22:09:37[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m00:40:44[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m00:46:59[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m00:48:18[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m01:52:32[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+EPERM, Permission denied: \\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts '\\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts'
+EPERM, Permission denied: \\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts '\\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts'
+EPERM, Permission denied: \\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts '\\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts'
+EPERM, Permission denied: \\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts '\\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts'
+EPERM, Permission denied: \\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts '\\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts'
+EPERM, Permission denied: \\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts '\\?\C:\Users\Goncalo\Desktop\AI\macrox\frontend\.svelte-kit\types\src\routes\mockup-week-a\$types.d.ts'
+[2m02:27:01[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m02:27:57[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mAvoid using `history.pushState(...)` and `history.replaceState(...)` as these will conflict with SvelteKit's router. Use the `pushState` and `replaceState` imports from `$app/navigation` instead.
+[2m02:33:17[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m02:36:02[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mReferenceError[22m: Check is not defined
+
+	in <unknown>
+	in +page.svelte
+	in +layout.svelte
+	in root.svelte
+	in undefined
+
+[39m > $.add_svelte_meta.componentTag src/routes/library/foods-meals/+page.svelte:850:9
+    848 |      <div class="app-toast app-toast-{toast.type}" role="alert">
+    849 |        <span class="app-toast-icon">
+    850 |          <Check size={16} strokeWidth={2.5} />
+        |           ^
+    851 |        </span>
+    852 |        <span>{toast.message}</span>
+ > Module.add_svelte_meta node_modules/svelte/src/internal/client/context.js:49:9
+ > consequent_34 src/routes/library/foods-meals/+page.svelte?t=1777163015041:2874:6
+ > node_modules/svelte/src/internal/client/dom/blocks/branches.js:202:18
+ > update_reaction node_modules/svelte/src/internal/client/runtime.js:259:15
+ > update_effect node_modules/svelte/src/internal/client/runtime.js:468:17
+ > create_effect node_modules/svelte/src/internal/client/reactivity/effects.js:138:3
+ > branch node_modules/svelte/src/internal/client/reactivity/effects.js:440:8
+ > BranchManager.ensure node_modules/svelte/src/internal/client/dom/blocks/branches.js:202:5
+ > update_branch node_modules/svelte/src/internal/client/dom/blocks/if.js:57:11
+
+[2m02:46:02[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mReferenceError[22m: logoSpin is not defined
+
+	in <unknown>
+	in +layout.svelte
+	in root.svelte
+	in undefined
+
+[39m > Navbar src/lib/components/layout/Navbar.svelte:43:22
+    41 |      <a href="/overview" class="logo" onmouseenter={onLogoEnter} onmouseleave={onLogoLeave}>Macro<span
+    42 |        class="logo-x"
+    43 |        class:spin-fwd={logoSpin === 'forward'}
+       |                        ^
+    44 |        class:spin-rev={logoSpin === 'reverse'}
+    45 |      >X</span></a>
+ > node_modules/svelte/src/internal/client/dev/hmr.js:51:49
+ > update_reaction node_modules/svelte/src/internal/client/runtime.js:259:15
+ > update_effect node_modules/svelte/src/internal/client/runtime.js:468:17
+ > create_effect node_modules/svelte/src/internal/client/reactivity/effects.js:138:3
+ > branch node_modules/svelte/src/internal/client/reactivity/effects.js:440:8
+ > node_modules/svelte/src/internal/client/dev/hmr.js:42:12
+ > update_reaction node_modules/svelte/src/internal/client/runtime.js:259:15
+ > update_effect node_modules/svelte/src/internal/client/runtime.js:468:17
+ > #traverse node_modules/svelte/src/internal/client/reactivity/batch.js:402:5
+
+[2m03:03:12[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mAvoid using `history.pushState(...)` and `history.replaceState(...)` as these will conflict with SvelteKit's router. Use the `pushState` and `replaceState` imports from `$app/navigation` instead.
+[2m03:07:35[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m
+[2m03:08:38[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mUnknown Error[22m: Internal JSON-RPC error.
+[39m

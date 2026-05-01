@@ -3,7 +3,9 @@
   import { mealStore } from "$lib/stores/meals.js";
   import { plannerStore } from "$lib/stores/planner.js";
   import { dayTemplateStore } from "$lib/stores/dayTemplates.js";
+  import { auth } from "$lib/stores/auth.js";
   import { onMount, flushSync } from "svelte";
+  import { beforeNavigate, goto } from '$app/navigation';
   import { Search, X as XIcon, Copy, Check, AlertTriangle, Undo2 } from "lucide-svelte";
   import { getWeekStart, getDayNames, formatDate } from "$lib/utils/macros.js";
   import {
@@ -12,6 +14,11 @@
     Plus,
     ChevronUp,
     ChevronDown,
+    Sunrise,
+    Sun,
+    Moon,
+    Cookie,
+    Bookmark,
   } from "lucide-svelte";
   import { dndzone } from "svelte-dnd-action";
   import { flip } from "svelte/animate";
@@ -66,6 +73,31 @@
   let hoverDay = $state(-1);
   let selectedTemplate = $state(null);
   let dockSearch = $state('');
+  let expandedDays = $state(Array(7).fill(false));
+  let dayMealsEls = $state(Array(7).fill(null));
+  let daysOverflow = $state(Array(7).fill(false));
+  function toggleExpanded(i) {
+    expandedDays[i] = !expandedDays[i];
+  }
+  // Signature that changes whenever any item is added/removed in any slot.
+  const contentSig = $derived(
+    days.map((d) => Object.values(d.meals).map((s) => s.length).join(',')).join('|')
+  );
+  // Detect whether each day's content overflows the default (collapsed) cap.
+  // While expanded, the day-meals area is taller, so a fresh measurement
+  // would falsely report "fits" — keep the prior value instead.
+  $effect(() => {
+    void contentSig;
+    void weekStart;
+    requestAnimationFrame(() => {
+      daysOverflow = daysOverflow.map((prev, i) => {
+        if (expandedDays[i]) return prev;
+        const el = dayMealsEls[i];
+        if (!el) return false;
+        return el.scrollHeight > el.clientHeight + 1;
+      });
+    });
+  });
   const foods = $derived(storesHydrated ? $foodStore.foods : data.foods);
   const meals = $derived(storesHydrated ? $mealStore.meals : data.meals);
   const templates = $derived(storesHydrated ? $dayTemplateStore.templates : data.templates);
@@ -115,7 +147,15 @@
     dinner: "Dinner",
     snack: "Snack",
   };
+  const slotIcons = {
+    breakfast: Sunrise,
+    lunch: Sun,
+    dinner: Moon,
+    snack: Cookie,
+  };
   const slotOrder = ["breakfast", "lunch", "dinner", "snack"];
+
+  const goals = $derived($auth.user?.goals || { calories: 2000, protein: 150, netCarbs: 100, fat: 65 });
 
   function getName(item) {
     if (item.type === "food")
@@ -130,6 +170,25 @@
     }
     const m = meals.find((meal) => meal._id === item.refId);
     return Math.round((m?.totalMacros?.calories || 0) * mult);
+  }
+  function getItemMacros(item) {
+    const mult = item.quantity / 100;
+    const round = (v) => Math.round(v * 10) / 10;
+    if (item.type === "food") {
+      const f = foods.find((food) => food._id === item.refId);
+      return {
+        p: round((f?.protein || 0) * mult),
+        c: round((f?.netCarbs || 0) * mult),
+        f: round((f?.fat || 0) * mult),
+      };
+    }
+    const m = meals.find((meal) => meal._id === item.refId);
+    const tm = m?.totalMacros || {};
+    return {
+      p: round((tm.protein || 0) * mult),
+      c: round((tm.netCarbs || 0) * mult),
+      f: round((tm.fat || 0) * mult),
+    };
   }
 
   function emptyDay(dayOfWeek) {
@@ -159,6 +218,7 @@
             quantity: item.quantity,
             name: getName(item),
             cal: getCal(item),
+            ...getItemMacros(item),
           }));
         }
       }
@@ -241,6 +301,7 @@
           quantity: item.quantity,
           name: getName(item),
           cal: getCal(item),
+          ...getItemMacros(item),
         }));
       }
     }
@@ -290,12 +351,13 @@
       hoverDay = -1;
       const hasItems = Object.values(days[di].meals).flat().length > 0;
       if (hasItems) {
-        openConfirm(
-          'Replace day?',
-          `Apply "${template.name}" to ${dayNames[di]}?`,
-          `${dayNames[di]} already has items that will be replaced.`,
-          () => { applyTemplate(di, template); showToast(`Applied to ${dayNames[di]}`); }
-        );
+        openConfirm({
+          title: `Replace ${dayNames[di]}'s plan?`,
+          message: `This will replace ${dayNames[di]}'s current items with "${template.name}".`,
+          warning: 'You can undo this from the Undo button.',
+          confirmText: 'Replace',
+          onConfirm: () => { applyTemplate(di, template); showToast(`Applied to ${dayNames[di]}`); },
+        });
         return;
       }
       applyTemplate(di, template);
@@ -320,12 +382,13 @@
     const template = selectedTemplate;
     const hasItems = Object.values(days[di].meals).flat().length > 0;
     if (hasItems) {
-      openConfirm(
-        'Replace day?',
-        `Apply "${template.name}" to ${dayNames[di]}?`,
-        `${dayNames[di]} already has items that will be replaced.`,
-        () => { applyTemplate(di, template); selectedTemplate = null; showToast(`Applied to ${dayNames[di]}`); }
-      );
+      openConfirm({
+        title: `Replace ${dayNames[di]}'s plan?`,
+        message: `This will replace ${dayNames[di]}'s current items with "${template.name}".`,
+        warning: 'You can undo this from the Undo button.',
+        confirmText: 'Replace',
+        onConfirm: () => { applyTemplate(di, template); selectedTemplate = null; showToast(`Applied to ${dayNames[di]}`); },
+      });
       return;
     }
     applyTemplate(di, template);
@@ -462,9 +525,9 @@
   }
 
   // ── Per-day macros ──
-  function dayMacros(meals) {
+  function dayMacros(dayMeals) {
     let cal = 0, pro = 0, carb = 0, fat = 0;
-    for (const items of Object.values(meals)) {
+    for (const items of Object.values(dayMeals)) {
       for (const i of items) {
         cal += i.cal || 0;
         const ref = i.type === 'food'
@@ -506,18 +569,19 @@
     }
     const hasItems = Object.values(days[di].meals).flat().length > 0;
     if (hasItems) {
-      openConfirm(
-        'Replace day?',
-        `Copy ${dayNames[copySource]}'s plan to ${dayNames[di]}?`,
-        `${dayNames[di]} already has items that will be replaced.`,
-        () => {
+      openConfirm({
+        title: `Replace ${dayNames[di]}'s plan?`,
+        message: `This will overwrite ${dayNames[di]} with a copy of ${dayNames[copySource]}.`,
+        warning: 'You can undo this from the Undo button.',
+        confirmText: 'Replace',
+        onConfirm: () => {
           pushHistory();
           days[di] = { ...days[di], meals: newMeals, templateName: days[copySource].templateName };
           days = [...days];
           copySource = -1;
           showToast(`Copied to ${dayNames[di]}`);
-        }
-      );
+        },
+      });
     } else {
       pushHistory();
       days[di] = { ...days[di], meals: newMeals, templateName: days[copySource].templateName };
@@ -528,17 +592,41 @@
   }
 
   // ── Confirmation modal ──
-  let confirmState = $state({ open: false, title: '', message: '', warning: '', onConfirm: null });
+  const emptyConfirm = {
+    open: false,
+    title: '',
+    message: '',
+    warning: '',
+    danger: false,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    onConfirm: null,
+    onCancel: null,
+  };
+  let confirmState = $state({ ...emptyConfirm });
 
-  function openConfirm(title, message, warning, onConfirm) {
-    confirmState = { open: true, title, message, warning, onConfirm };
-  }
-  function closeConfirm() {
-    confirmState = { open: false, title: '', message: '', warning: '', onConfirm: null };
+  function openConfirm(opts) {
+    confirmState = {
+      open: true,
+      title: opts.title,
+      message: opts.message ?? '',
+      warning: opts.warning ?? '',
+      danger: opts.danger ?? false,
+      confirmText: opts.confirmText ?? 'Confirm',
+      cancelText: opts.cancelText ?? 'Cancel',
+      onConfirm: opts.onConfirm ?? null,
+      onCancel: opts.onCancel ?? null,
+    };
   }
   function executeConfirm() {
-    if (confirmState.onConfirm) confirmState.onConfirm();
-    closeConfirm();
+    const fn = confirmState.onConfirm;
+    confirmState = { ...emptyConfirm };
+    fn?.();
+  }
+  function cancelConfirm() {
+    const fn = confirmState.onCancel;
+    confirmState = { ...emptyConfirm };
+    fn?.();
   }
 
   // ── Toast ──
@@ -550,9 +638,68 @@
     toast = { visible: true, message, type };
     toastTimeout = setTimeout(() => (toast = { ...toast, visible: false }), 3000);
   }
+
+  // ── Unsaved-changes guard ──
+  // Intercept SvelteKit navigation when there are unsaved edits, cancel it,
+  // then surface our own ConfirmModal. If the user confirms "Leave", we set
+  // a one-shot flag and re-trigger the navigation via goto().
+  // Tab close/refresh is handled separately by onbeforeunload (browsers don't
+  // allow custom modals there).
+  let allowNextNav = false;
+  beforeNavigate((nav) => {
+    if (allowNextNav) {
+      allowNextNav = false;
+      return;
+    }
+    if (dirty && !nav.willUnload && nav.to) {
+      const targetUrl = nav.to.url;
+      nav.cancel();
+      openConfirm({
+        title: 'Leave without saving?',
+        message: 'You have unsaved changes on the weekly plan.',
+        warning: 'Your edits will be lost if you leave now.',
+        danger: true,
+        confirmText: 'Leave',
+        cancelText: 'Stay',
+        onConfirm: () => {
+          allowNextNav = true;
+          goto(targetUrl);
+        },
+      });
+    }
+  });
+
+  // ── Click-outside cancels pending action ──
+  // Selecting a template (to apply) or starting a Copy puts the page into a
+  // "click a day" state. Any click that isn't on a day, the action bar,
+  // a template card, or a Copy button should cancel that pending action.
+  function handleGlobalClick(e) {
+    if (!selectedTemplate && copySource < 0) return;
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (
+      t.closest('.day-col') ||
+      t.closest('.tpl-card') ||
+      t.closest('.select-hint') ||
+      t.closest('.day-action-btn') ||
+      t.closest('.modal-overlay')
+    ) {
+      return;
+    }
+    selectedTemplate = null;
+    copySource = -1;
+  }
 </script>
 
-<svelte:window onbeforeunload={(e) => { if (dirty) { e.preventDefault(); } }} />
+<svelte:window
+  onbeforeunload={(e) => {
+    if (dirty) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  }}
+  onclick={handleGlobalClick}
+/>
 
 <svelte:head><title>Weekly Planner — MacroX</title></svelte:head>
 
@@ -637,11 +784,7 @@
     <!-- Weekly Summary Card -->
     <div class="summary-card">
       <span class="summary-label">WEEK TOTAL</span>
-      <span class="summary-cal mono"
-        >{weekTotals.cal.toLocaleString()}<span class="summary-unit">
-          kcal</span
-        ></span
-      >
+      <span class="summary-cal mono">{weekTotals.cal.toLocaleString()}<span class="summary-unit"> kcal</span></span>
       <div class="summary-macros">
         <span class="mono" style="color: var(--pro)">{weekTotals.pro}p</span>
         <span class="summary-dot">·</span>
@@ -649,8 +792,14 @@
         <span class="summary-dot">·</span>
         <span class="mono" style="color: var(--fat)">{weekTotals.fat}f</span>
       </div>
-      <span class="summary-planned">{weekTotals.planned} of 7 days planned</span
-      >
+      <div class="summary-planned">
+        <div class="planned-dots">
+          {#each Array(7) as _, di}
+            <span class="planned-dot" class:planned-dot-on={Object.values(days[di].meals).flat().length > 0}></span>
+          {/each}
+        </div>
+        <span class="planned-text">{weekTotals.planned} of 7 days planned</span>
+      </div>
     </div>
   </div>
 
@@ -689,6 +838,7 @@
     class:day-col-target={draggingTemplate && hoverDay !== i}
     class:day-col-selectable={selectedTemplate || copySource >= 0}
     class:day-col-copy-source={copySource === i}
+    class:day-col-expanded={hasItems && expandedDays[i]}
     ondragover={(e) => onDayDragOver(e, i)}
     ondragleave={() => onDayDragLeave(i)}
     ondrop={(e) => onDayDrop(e, i)}
@@ -702,35 +852,79 @@
         <span class="day-num">{getDateNum(i)}</span>
         {#if todayIndex === i}<span class="today-dot"></span>{/if}
       </div>
-      <span class="day-kcal mono">{macros.cal}</span>
+      {#if hasItems}
+        {@const goalPct = Math.min(100, Math.max(0, (macros.cal / (goals.calories || 2000)) * 100))}
+        <div class="day-head-right">
+          <div class="day-kcal-wrap" title="{Math.round(goalPct)}% of {goals.calories || 2000} kcal goal">
+            <svg class="ring" viewBox="0 0 24 24" width="22" height="22">
+              <circle cx="12" cy="12" r="9" class="ring-bg" />
+              <circle cx="12" cy="12" r="9" class="ring-fg" style="stroke-dasharray: {goalPct * 0.566} 56.6;" />
+            </svg>
+            <span class="day-kcal mono">{macros.cal}</span>
+          </div>
+          {#if daysOverflow[i]}
+            <button
+              type="button"
+              class="day-collapse-btn"
+              aria-label={expandedDays[i] ? 'Collapse day' : 'Expand day'}
+              title={expandedDays[i] ? 'Collapse day' : 'Expand day'}
+              onclick={(e) => { e.stopPropagation(); toggleExpanded(i); }}
+            >
+              {#if expandedDays[i]}
+                <ChevronUp size={13} strokeWidth={1.75} />
+              {:else}
+                <ChevronDown size={13} strokeWidth={1.75} />
+              {/if}
+            </button>
+          {/if}
+        </div>
+      {/if}
     </div>
 
     {#if hasItems}
       <div class="day-macros">
-        <span class="dm mono" style="color: var(--pro)">{macros.pro}p</span>
-        <span class="dm mono" style="color: var(--carb)">{macros.carb}c</span>
-        <span class="dm mono" style="color: var(--fat)">{macros.fat}f</span>
+        <span class="dm mono" data-k="p">{macros.pro}p</span>
+        <span class="dm-sep">·</span>
+        <span class="dm mono" data-k="c">{macros.carb}c</span>
+        <span class="dm-sep">·</span>
+        <span class="dm mono" data-k="f">{macros.fat}f</span>
       </div>
     {/if}
 
     {#if days[i].templateName}
-      <div class="template-badge">{days[i].templateName}</div>
+      <div class="template-badge">
+        <Bookmark size={9} strokeWidth={2} />
+        {days[i].templateName}
+      </div>
     {/if}
 
-    <div class="day-meals">
+    <div class="day-meals" bind:this={dayMealsEls[i]}>
       {#each slotOrder as slot}
         {#if days[i].meals[slot].length > 0}
+          {@const SlotIcon = slotIcons[slot]}
           <div class="meal-group">
-            <span class="meal-slot-label">{slotLabels[slot]}</span>
+            <span class="meal-slot-label">
+              <SlotIcon size={11} strokeWidth={1.75} />
+              {slotLabels[slot]}
+            </span>
             {#each days[i].meals[slot] as item}
               <div class="day-item">
                 <span class="di-name">{item.name}</span>
+                <span class="di-detail mono">
+                  <span class="di-cal">{item.cal}<span class="di-cal-unit"> kcal</span></span>
+                  <span class="di-sep">·</span>
+                  <span class="di-m" data-k="p">{item.p}p</span>
+                  <span class="di-sep">·</span>
+                  <span class="di-m" data-k="c">{item.c}c</span>
+                  <span class="di-sep">·</span>
+                  <span class="di-m" data-k="f">{item.f}f</span>
+                </span>
                 <button
                   class="di-rm"
                   onclick={(e) => {
                     e.stopPropagation();
                     removeItem(i, slot, item.id);
-                  }}><X size={10} strokeWidth={1.5} /></button
+                  }}><X size={10} strokeWidth={2} /></button
                 >
               </div>
             {/each}
@@ -769,7 +963,14 @@
           class="day-clear"
           onclick={(e) => {
             e.stopPropagation();
-            openConfirm('Clear day?', `Remove all items from ${dayNames[i]}?`, '', () => { clearDay(i); showToast(`${dayNames[i]} cleared`); });
+            openConfirm({
+            title: `Clear ${dayNames[i]}?`,
+            message: `This removes every item from ${dayNames[i]}.`,
+            warning: 'You can undo this from the Undo button.',
+            danger: true,
+            confirmText: 'Clear day',
+            onConfirm: () => { clearDay(i); showToast(`${dayNames[i]} cleared`); },
+          });
           }}>Clear</button
         >
       </div>
@@ -845,6 +1046,8 @@
         <p class="dock-empty">No plans match "<strong>{dockSearch}</strong>"</p>
       {:else}
         {#each filteredDockTemplates as template}
+          {@const totalItems = (template.meals || []).reduce((s, m) => s + (m.items?.length || 0), 0)}
+          {@const filledSlots = new Set((template.meals || []).filter(m => m.items?.length > 0).map(m => m.slot))}
           <div
             class="tpl-card"
             class:tpl-selected={selectedTemplate?._id === template._id}
@@ -862,32 +1065,53 @@
             role="button"
             tabindex="0"
           >
-            <div class="tpl-grip-icon"><GripVertical size={12} strokeWidth={1.5} /></div>
-            <div class="tpl-body">
-              <div class="tpl-top">
-                <span class="tpl-name">{template.name}</span>
-                <button
-                  class="tpl-del"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    openConfirm('Delete plan?', `Delete "${template.name}"?`, 'This cannot be undone.', () => dayTemplateStore.remove(template._id));
-                  }}
-                  aria-label="Delete template"
-                  ><X size={11} strokeWidth={1.5} /></button
-                >
-              </div>
-              <div class="tpl-stats">
-                <span class="tpl-cal mono" style="color: var(--cal)">{Math.round(template.totalMacros?.calories || 0)}<span class="tpl-cal-unit">kcal</span></span>
-                <span class="tpl-count">{(template.meals || []).reduce((s, m) => s + (m.items?.length || 0), 0)} items</span>
-              </div>
-              <div class="tpl-macros">
-                <span class="mono" style="color: var(--pro)">{Math.round(template.totalMacros?.protein || 0)}p</span>
-                <span class="tpl-sep">·</span>
-                <span class="mono" style="color: var(--carb)">{Math.round(template.totalMacros?.netCarbs || 0)}c</span>
-                <span class="tpl-sep">·</span>
-                <span class="mono" style="color: var(--fat)">{Math.round(template.totalMacros?.fat || 0)}f</span>
-              </div>
+            <header class="tpl-head">
+              <span class="tpl-name">{template.name}</span>
+              <button
+                class="tpl-del"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  openConfirm({
+                    title: `Delete "${template.name}"?`,
+                    message: 'This day plan will be removed from your library.',
+                    warning: 'This cannot be undone.',
+                    danger: true,
+                    confirmText: 'Delete',
+                    onConfirm: () => dayTemplateStore.remove(template._id),
+                  });
+                }}
+                aria-label="Delete template"
+                ><X size={11} strokeWidth={2} /></button
+              >
+            </header>
+
+            <div class="tpl-cal-row">
+              <span class="tpl-cal-num mono">{Math.round(template.totalMacros?.calories || 0).toLocaleString()}</span>
+              <span class="tpl-cal-unit">kcal</span>
             </div>
+
+            <div class="tpl-macros mono">
+              <span class="t-m" data-k="p">{Math.round(template.totalMacros?.protein || 0)}p</span>
+              <span class="t-sep">·</span>
+              <span class="t-m" data-k="c">{Math.round(template.totalMacros?.netCarbs || 0)}c</span>
+              <span class="t-sep">·</span>
+              <span class="t-m" data-k="f">{Math.round(template.totalMacros?.fat || 0)}f</span>
+            </div>
+
+            <footer class="tpl-foot">
+              <div class="tpl-slots" aria-label="Filled meals">
+                {#each slotOrder as slot}
+                  <span class="tpl-slot" class:tpl-slot-on={filledSlots.has(slot)} title={slotLabels[slot]}>
+                    {slotLabels[slot][0]}
+                  </span>
+                {/each}
+              </div>
+              <span class="tpl-count">{totalItems} {totalItems === 1 ? 'item' : 'items'}</span>
+            </footer>
+
+            <span class="tpl-grip" aria-hidden="true">
+              <GripVertical size={11} strokeWidth={1.5} />
+            </span>
           </div>
         {/each}
       {/if}
@@ -900,9 +1124,11 @@
   title={confirmState.title}
   message={confirmState.message}
   warning={confirmState.warning}
-  danger={!!confirmState.warning}
+  danger={confirmState.danger}
+  confirmText={confirmState.confirmText}
+  cancelText={confirmState.cancelText}
   onconfirm={executeConfirm}
-  oncancel={closeConfirm}
+  oncancel={cancelConfirm}
 />
 
 <!-- Toast -->
@@ -1002,8 +1228,10 @@
     border-radius: var(--radius-lg);
     padding: var(--space-4) var(--space-4) var(--space-3);
     min-height: 280px;
+    max-height: 400px;
     position: relative;
-    transition: all var(--transition-base);
+    transition: max-height var(--transition-base), background var(--transition-base),
+                border-color var(--transition-base);
     display: flex;
     flex-direction: column;
   }
@@ -1033,8 +1261,9 @@
   .day-head {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     margin-bottom: var(--space-3);
+    min-height: 24px;
   }
   .day-head-left {
     display: flex;
@@ -1051,23 +1280,55 @@
     color: var(--text-3);
     font-weight: 400;
   }
+  /* Right-side controls in the day header */
+  .day-head-right {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .day-collapse-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+  .day-collapse-btn:hover {
+    color: var(--text-0);
+    background: var(--bg-hover);
+  }
+
+  /* Kcal with goal ring */
+  .day-kcal-wrap { display: inline-flex; align-items: center; gap: 5px; }
   .day-kcal {
     font-size: var(--font-sm);
     color: var(--cal);
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .ring { transform: rotate(-90deg); flex-shrink: 0; }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 2; }
+  .ring-fg {
+    fill: none; stroke: var(--cal); stroke-width: 2; stroke-linecap: round;
+    transition: stroke-dasharray 600ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .template-badge {
-    font-size: var(--font-xs);
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    background: var(--accent-subtle);
-    color: var(--text-2);
-    font-weight: 500;
+    display: inline-flex; align-items: center; gap: 4px;
     align-self: flex-start;
-    margin-bottom: var(--space-3);
-    letter-spacing: 0.02em;
+    font-size: 10px; font-weight: 500; letter-spacing: -0.005em;
+    padding: 3px 8px; margin-bottom: var(--space-3);
+    background: var(--accent-subtle); color: var(--text-2);
+    border-radius: var(--radius-full);
   }
+  .template-badge :global(svg) { color: var(--text-3); }
 
   .drop-indicator {
     padding: var(--space-2);
@@ -1096,55 +1357,88 @@
     flex-direction: column;
     gap: var(--space-3);
     flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
+
+  /* When any day in the grid is expanded, raise every card's ceiling
+     to 500px. CSS Grid rows still size to their tallest cell, so only
+     the row containing the expanded card actually grows — the other
+     row stays at its natural height. */
+  .week-grid:has(.day-col-expanded) .day-col {
+    max-height: 500px;
+  }
+  .day-col-expanded {
+    max-height: 500px;
+  }
+  .day-col-expanded .day-meals {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .day-col-expanded .day-meals::-webkit-scrollbar { width: 4px; }
+  .day-col-expanded .day-meals::-webkit-scrollbar-track { background: transparent; }
+  .day-col-expanded .day-meals::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-full); }
+  .day-col-expanded .day-meals::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
   .meal-group {
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
   .meal-slot-label {
-    font-size: var(--font-xs);
-    font-weight: 600;
-    color: var(--text-2);
-    letter-spacing: 0.03em;
-    padding-bottom: 3px;
-    margin-bottom: 3px;
-    border-bottom: var(--border-width) solid var(--border);
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--text-2); text-transform: uppercase;
+    padding-bottom: 4px; margin-bottom: 4px;
+    box-shadow: inset 0 -1px 0 var(--border);
   }
+  .meal-slot-label :global(svg) { color: var(--text-3); }
+
   .day-item {
-    padding: 3px 2px;
-    background: transparent;
-    border-radius: 0;
-    font-size: var(--font-sm);
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
+    display: grid; grid-template-columns: 1fr auto auto;
+    gap: 6px; align-items: baseline;
+    padding: 3px 4px;
     color: var(--text-1);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast), color var(--transition-fast);
   }
-  .day-item:hover {
-    color: var(--text-0);
-  }
+  .day-item:hover { background: var(--bg-hover); color: var(--text-0); }
   .di-name {
-    flex: 1;
+    font-size: var(--font-sm);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: -0.005em;
   }
+  /* Hover-reveal: kcal + macros */
+  .di-detail {
+    display: flex; gap: 4px;
+    font-size: 10px; color: var(--text-3);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+  .day-item:hover .di-detail { opacity: 1; }
+  .di-cal { color: var(--cal); font-weight: 500; }
+  .di-cal-unit { color: var(--text-3); font-weight: 400; font-size: 9px; }
+  .di-sep { color: var(--text-3); opacity: 0.5; }
+  .di-m { transition: color var(--transition-fast); }
+  .di-m[data-k="p"] { color: var(--pro); opacity: 0.85; }
+  .di-m[data-k="c"] { color: var(--carb); opacity: 0.85; }
+  .di-m[data-k="f"] { color: var(--fat); opacity: 0.85; }
+
   .di-rm {
     background: none;
     border: none;
     color: var(--text-3);
     cursor: pointer;
     display: flex;
-    padding: 0;
+    padding: 2px;
+    border-radius: var(--radius-sm);
     opacity: 0;
+    transition: opacity var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
   }
-  .day-item:hover .di-rm {
-    opacity: 1;
-  }
-  .di-rm:hover {
-    color: var(--danger);
-  }
+  .day-item:hover .di-rm { opacity: 1; }
+  .di-rm:hover { color: var(--danger); background: var(--danger-bg); }
   .day-add-link {
     text-align: center;
     color: var(--text-3);
@@ -1237,9 +1531,18 @@
     color: var(--text-3);
   }
   .summary-planned {
-    font-size: var(--font-sm);
-    color: var(--text-3);
+    display: flex; flex-direction: column; gap: 6px;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border);
   }
+  .planned-dots { display: flex; gap: 4px; }
+  .planned-dot {
+    width: 18px; height: 5px; border-radius: 99px;
+    background: var(--border);
+    transition: background var(--transition-fast);
+  }
+  .planned-dot-on { background: var(--text-1); }
+  .planned-text { font-size: var(--font-xs); color: var(--text-3); }
 
   /* ── Template Dock ── */
   .dock {
@@ -1387,132 +1690,129 @@
     color: var(--text-0);
   }
 
+  /* ── Plan card ── */
   .tpl-card {
-    
     position: relative;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
+    display: flex; flex-direction: column; gap: var(--space-2);
+    padding: var(--space-3) var(--space-4) var(--space-3);
+    /* Solid colour that matches the dock's perceived surface (bg-0 + bg-hover blended).
+       Pure bg-0 reads as a darker rectangle here because the dock already paints
+       bg-hover on top of bg-0; bg-elevated is the rendered equivalent as a solid. */
+    background: var(--bg-elevated);
     border: var(--border-width) solid var(--border);
     border-radius: var(--radius-md);
     cursor: grab;
     user-select: none;
-    width: 200px;
+    width: 210px;
     flex-shrink: 0;
     scroll-snap-align: start;
-    transition: all var(--transition-fast);
-    background: transparent;
+    overflow: hidden;
+    transition: border-color var(--transition-fast), background var(--transition-fast),
+                transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  /* Subtle accent stripe along the left edge — appears on hover/select */
+  .tpl-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--text-2);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
   }
   .tpl-card:hover {
     border-color: var(--border-strong);
     background: var(--bg-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   }
+  .tpl-card:hover::before { opacity: 0.7; }
   .tpl-card:active {
     cursor: grabbing;
-    transform: translateY(0) scale(0.99);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.20);
+    transform: scale(0.99);
   }
   .tpl-selected {
-    border-color: var(--text-2);
-    background: var(--accent-subtle);
+    border-color: var(--text-0);
+    background: var(--bg-hover);
   }
-  .tpl-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--space-2);
-    min-width: 0;
+  .tpl-selected::before { opacity: 1; background: var(--text-0); }
+
+  .tpl-head {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2);
   }
   .tpl-name {
-    font-size: var(--font-sm);
-    font-weight: 500;
-    color: var(--text-0);
+    font-size: var(--font-sm); font-weight: 600; color: var(--text-0);
     letter-spacing: -0.01em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 1;
-    min-width: 0;
-  }
-  .tpl-cal {
-    font-size: var(--font-sm);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    display: inline-flex;
-    align-items: baseline;
-    gap: 2px;
-  }
-  .tpl-cal-unit {
-    font-size: 10px;
-    font-weight: 400;
-    color: var(--text-3);
-    letter-spacing: 0.02em;
-  }
-  .tpl-stats {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-2);
-  }
-  .tpl-count {
-    font-size: 10px;
-    color: var(--text-3);
-    font-weight: 400;
-  }
-  .tpl-macros {
-    display: flex;
-    gap: var(--space-2);
-    align-items: baseline;
-  }
-  .tpl-macros .mono {
-    font-size: var(--font-xs);
-    opacity: 0.75;
-  }
-  .tpl-sep {
-    font-size: var(--font-xs);
-    color: var(--text-3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1; min-width: 0;
   }
   .tpl-del {
-    background: none;
-    border: none;
-    color: var(--text-3);
-    cursor: pointer;
-    display: flex;
-    padding: 2px;
-    border-radius: var(--radius-sm);
+    background: none; border: none; color: var(--text-3);
+    cursor: pointer; display: flex; padding: 2px;
+    border-radius: var(--radius-sm); flex-shrink: 0;
     opacity: 0;
-    flex-shrink: 0;
+    transition: opacity var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  }
+  .tpl-card:hover .tpl-del { opacity: 1; }
+  .tpl-del:hover { color: var(--danger); background: var(--danger-bg); }
+
+  /* Hero kcal */
+  .tpl-cal-row { display: flex; align-items: baseline; gap: 4px; }
+  .tpl-cal-num {
+    font-size: var(--font-xl); font-weight: 700; color: var(--cal);
+    letter-spacing: -0.03em; line-height: 1;
+  }
+  .tpl-cal-unit {
+    font-size: 10px; font-weight: 500; color: var(--text-3);
+    letter-spacing: 0.02em; text-transform: uppercase;
+  }
+
+  .tpl-macros {
+    display: flex; gap: 5px; align-items: baseline;
+    font-size: var(--font-xs);
+  }
+  .t-m { transition: color var(--transition-fast); }
+  .t-m[data-k="p"] { color: var(--pro); opacity: 0.85; }
+  .t-m[data-k="c"] { color: var(--carb); opacity: 0.85; }
+  .t-m[data-k="f"] { color: var(--fat); opacity: 0.85; }
+  .tpl-card:hover .t-m { opacity: 1; }
+  .t-sep { color: var(--text-3); opacity: 0.5; }
+
+  .tpl-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+  /* Slot indicators — filled = highlighted, empty = muted */
+  .tpl-slots { display: inline-flex; gap: 3px; }
+  .tpl-slot {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 9px; font-weight: 700; letter-spacing: 0;
+    color: var(--text-3);
     transition: all var(--transition-fast);
   }
-  .tpl-card:hover .tpl-del {
-    opacity: 1;
+  .tpl-slot-on {
+    background: var(--bg-active);
+    border-color: var(--text-2);
+    color: var(--text-0);
   }
-  .tpl-del:hover {
-    color: var(--danger);
-    background: var(--danger-bg);
+  .tpl-card:hover .tpl-slot-on { background: var(--text-0); color: var(--bg-0); border-color: var(--text-0); }
+
+  .tpl-count {
+    font-size: 10px; color: var(--text-3); font-weight: 500;
+    letter-spacing: 0.02em;
   }
-  .tpl-grip-icon {
-    display: flex;
-    align-items: center;
-    color: var(--text-3);
-    opacity: 0.3;
-    flex-shrink: 0;
+
+  /* Drag grip — corner watermark, only visible on hover */
+  .tpl-grip {
+    position: absolute; bottom: 6px; right: 6px;
+    display: flex; align-items: center;
+    color: var(--text-3); opacity: 0;
     transition: opacity var(--transition-fast);
+    pointer-events: none;
   }
-  .tpl-card:hover .tpl-grip-icon {
-    opacity: 0.7;
-  }
-  .tpl-body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
+  .tpl-card:hover .tpl-grip { opacity: 0.4; }
 
   /* ── Today indicator ── */
   .day-col-today {
@@ -1529,14 +1829,15 @@
 
   /* ── Per-day macros ── */
   .day-macros {
-    display: flex;
-    gap: var(--space-2);
+    display: flex; align-items: center; gap: 4px;
     margin-bottom: var(--space-2);
+    font-size: 10.5px; color: var(--text-3);
   }
-  .dm {
-    font-size: 10.5px;
-    opacity: 0.65;
-  }
+  .dm { transition: color var(--transition-fast); }
+  .dm-sep { opacity: 0.55; }
+  .day-col:hover .dm[data-k="p"] { color: var(--pro); }
+  .day-col:hover .dm[data-k="c"] { color: var(--carb); }
+  .day-col:hover .dm[data-k="f"] { color: var(--fat); }
 
   /* ── Copy day ── */
   .day-col-copy-source {

@@ -58,6 +58,15 @@ function createAuthStore() {
       update((s) => ({ ...s, user: data.user }));
     },
 
+    async updateProfile({ name, email }) {
+      const data = await api.put('/auth/profile', { name, email });
+      update((s) => ({ ...s, user: data.user }));
+    },
+
+    async updatePassword({ currentPassword, newPassword }) {
+      await api.put('/auth/password', { currentPassword, newPassword });
+    },
+
     clearError() {
       update((s) => ({ ...s, error: null }));
     },

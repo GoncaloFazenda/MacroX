@@ -2,7 +2,13 @@ import { Router, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import { signToken, getCookieOptions } from '../utils/jwt';
-import { registerSchema, loginSchema, updateGoalsSchema } from '../utils/schemas';
+import {
+  registerSchema,
+  loginSchema,
+  updateGoalsSchema,
+  updateProfileSchema,
+  updatePasswordSchema,
+} from '../utils/schemas';
 import { authenticate } from '../middleware/auth';
 import type { AuthenticatedRequest } from '../types';
 
@@ -217,6 +223,111 @@ router.put('/goals', authenticate, async (req: AuthenticatedRequest, res: Respon
         createdAt: user.createdAt,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   put:
+ *     tags: [Auth]
+ *     summary: Update name and email
+ *     security: [{ cookieAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email]
+ *             properties:
+ *               name: { type: string }
+ *               email: { type: string, format: email }
+ *     responses:
+ *       200: { description: Profile updated }
+ *       409: { description: Email already in use }
+ */
+router.put('/profile', authenticate, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const data = updateProfileSchema.parse(req.body);
+
+    const existing = await User.findOne({ email: data.email, _id: { $ne: req.user!.userId } });
+    if (existing) {
+      res.status(409).json({ error: 'Email already in use' });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user!.userId,
+      { $set: { name: data.name, email: data.email } },
+      { new: true }
+    );
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const token = signToken({ userId: user._id.toString(), email: user.email });
+    res.cookie('token', token, getCookieOptions());
+
+    res.json({
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        goals: user.goals,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/password:
+ *   put:
+ *     tags: [Auth]
+ *     summary: Change account password
+ *     security: [{ cookieAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, newPassword]
+ *             properties:
+ *               currentPassword: { type: string }
+ *               newPassword: { type: string, minLength: 6 }
+ *     responses:
+ *       200: { description: Password updated }
+ *       401: { description: Current password is incorrect }
+ */
+router.put('/password', authenticate, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const data = updatePasswordSchema.parse(req.body);
+
+    const user = await User.findById(req.user!.userId).select('+password');
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const isValid = await bcrypt.compare(data.currentPassword, user.password);
+    if (!isValid) {
+      res.status(401).json({ error: 'Current password is incorrect' });
+      return;
+    }
+
+    user.password = await bcrypt.hash(data.newPassword, 12);
+    await user.save();
+
+    res.json({ message: 'Password updated successfully' });
   } catch (error) {
     next(error);
   }

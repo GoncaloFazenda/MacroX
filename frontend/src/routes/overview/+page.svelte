@@ -6,12 +6,21 @@
   import { api } from '$lib/api/client.js';
   import { getPercentage, formatDate, calculateMacros } from '$lib/utils/macros.js';
   import { onMount } from 'svelte';
-  import { AlertTriangle, Settings } from 'lucide-svelte';
+  import { AlertTriangle, Settings, Check } from 'lucide-svelte';
   import AnimatedNumber from '$lib/components/ui/AnimatedNumber.svelte';
 
   let today = formatDate(new Date());
   let mounted = $state(false);
   let loadError = $state('');
+
+  // ── Toast ──
+  let toast = $state({ visible: false, message: '', type: 'success' });
+  let toastTimeout;
+  function showToast(message, type = 'success') {
+    clearTimeout(toastTimeout);
+    toast = { visible: true, message, type };
+    toastTimeout = setTimeout(() => (toast = { ...toast, visible: false }), 3000);
+  }
 
   let goals = $derived($auth.user?.goals || { calories: 2000, protein: 150, netCarbs: 100, fat: 65 });
   let totals = $state({ calories: 0, protein: 0, netCarbs: 0, fat: 0 });
@@ -128,8 +137,9 @@
     try {
       await auth.updateGoals(payload);
       editingGoals = false;
+      showToast('Goals updated');
     } catch (err) {
-      alert(err.message);
+      showToast(err.message, 'error');
     }
   }
 </script>
@@ -328,6 +338,21 @@
         <button type="submit" class="btn btn-primary">Save</button>
       </div>
     </form>
+  </div>
+{/if}
+
+{#if toast.visible}
+  <div class="toast-container">
+    <div class="app-toast app-toast-{toast.type}" role="alert">
+      <span class="app-toast-icon">
+        {#if toast.type === 'success'}
+          <Check size={16} strokeWidth={2.5} />
+        {:else}
+          <AlertTriangle size={16} strokeWidth={2} />
+        {/if}
+      </span>
+      <span>{toast.message}</span>
+    </div>
   </div>
 {/if}
 

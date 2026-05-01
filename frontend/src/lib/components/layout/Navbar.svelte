@@ -9,6 +9,7 @@
   let libraryOpen = $state(false);
   let libraryTimeout;
 
+
   const mainNav = [
     { href: '/overview', label: 'Overview' },
     { href: '/day', label: 'My Day' },
@@ -37,7 +38,7 @@
 
 <nav class="navbar">
   <div class="navbar-inner">
-    <a href="/overview" class="logo">Macro<span class="logo-x">X</span></a>
+    <a href="/overview" class="logo"><span class="logo-macro">Macro</span><span class="logo-x">X</span></a>
 
     <div class="nav-links" class:open={mobileOpen}>
       {#each mainNav as item}
@@ -144,10 +145,44 @@
     color: var(--text-0);
     letter-spacing: -0.04em;
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: baseline;
+    position: relative;
+  }
+
+  .logo-macro {
+    display: inline-block;
   }
 
   .logo-x {
+    display: inline-block;
     color: var(--cal);
+    transform-origin: center;
+    transform: scale(1) translateZ(0);
+    will-change: transform;
+    transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .logo:hover .logo-x {
+    transform: scale(1.14) translateZ(0);
+  }
+
+  .logo::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 1px;
+    background: var(--cal);
+    transform: scaleX(0);
+    transform-origin: left;
+    opacity: 0.7;
+    transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .logo:hover::after {
+    transform: scaleX(1);
   }
 
   .nav-links {

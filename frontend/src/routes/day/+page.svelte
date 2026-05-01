@@ -9,12 +9,14 @@
   import { beforeNavigate, goto } from '$app/navigation';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import { formatDate, getPercentage } from '$lib/utils/macros.js';
-  import { X, Plus, Sparkles, GripVertical, Bookmark, ArrowLeft, Pencil, Check, Trash2, Undo2, Copy } from 'lucide-svelte';
+  import { X, Sparkles, Search, SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Bookmark, ArrowLeft, Pencil, Check, Trash2, Undo2, Copy, Sunrise, Sun, Moon, Cookie } from 'lucide-svelte';
   import DateNav from '$lib/components/ui/DateNav.svelte';
   import SaveButton from '$lib/components/ui/SaveButton.svelte';
   import AnimatedNumber from '$lib/components/ui/AnimatedNumber.svelte';
   import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
   import { flip } from 'svelte/animate';
+  import { fade, slide, scale, fly } from 'svelte/transition';
+  import { quintOut, backOut } from 'svelte/easing';
 
   let { data } = $props();
 
@@ -25,9 +27,52 @@
   let search = $state('');
   let activeCategory = $state('All');
   let activeSlot = $state('breakfast');
+  let activeTab = $state('foods');
+  let showFilters = $state(false);
+  let filtersEl = $state(null);
+  let canScrollLeft = $state(false);
+  let canScrollRight = $state(false);
+  let slotMenuOpen = $state(false);
+
+  function updateFiltersScrollState() {
+    const el = filtersEl;
+    if (!el) return;
+    canScrollLeft = el.scrollLeft > 2;
+    canScrollRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+  }
+  function scrollFilters(dir) {
+    const el = filtersEl;
+    if (!el) return;
+    const step = Math.max(120, el.clientWidth * 0.6);
+    const max = el.scrollWidth - el.clientWidth;
+    let target = el.scrollLeft + dir * step;
+    const SNAP = 40;
+    if (dir > 0 && max - target < SNAP) target = max;
+    else if (dir < 0 && target < SNAP) target = 0;
+    el.scrollTo({ left: Math.max(0, Math.min(max, target)), behavior: 'smooth' });
+  }
+  $effect(() => {
+    if (!showFilters) return;
+    requestAnimationFrame(updateFiltersScrollState);
+  });
+  let suggOpen = $state(true);
+  let suggHeaderSparkle = $state(false);
+  let newSuggIds = $state(new Set());      // items showing the border/glow effect
+  let unseenNewIds = $state(new Set());    // subset still showing the NEW tag
+  let userHasInteractedSugg = $state(false); // gate for treating list deltas as "new arrivals"
+  let suggGridEl = $state(null);           // bound to the 2-row suggestion grid for measurement
+  let overflowSuggIds = $state(new Set()); // ids that don't fit in the visible 2 rows
+  let suggSingleRow = $state(false);       // collapse to one row when row 2 would be sparse (≤2 items)
+  let suggMeasureRaf = null;
+  let prevSuggIds = new Set();
+  let suggHeaderSparkleTimer = null;
+  let newSuggClearTimer = null;
+  let unseenTagClearTimer = null;
   let saving = $state(false);
   let mounted = $state(false);
   let ready = $state(true);
+
+  function pickSlot(s) { activeSlot = s; slotMenuOpen = false; }
   let nextId = 1;
   let pendingNavigation = $state(null);
   let allowNextNavigation = false;
@@ -121,6 +166,7 @@
 
   let slots = $state(emptySlots());
   const slotLabels = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
+  const slotIcons = { breakfast: Sunrise, lunch: Sun, dinner: Moon, snack: Cookie };
 
   const goals = $derived($auth.user?.goals || { calories: 2000, protein: 150, netCarbs: 100, fat: 65 });
 
@@ -165,6 +211,23 @@
     takeSavedSnapshot();
     syncSuggestions();
     setTimeout(() => mounted = true, 50);
+
+    // Recompute which suggestion cards fit in 2 rows whenever the grid resizes.
+    let ro = null;
+    const ensureObserver = () => {
+      if (ro || !suggGridEl) return;
+      ro = new ResizeObserver(scheduleSuggMeasure);
+      ro.observe(suggGridEl);
+      scheduleSuggMeasure();
+    };
+    ensureObserver();
+    // The grid mounts conditionally ({#if suggDndItems.length > 0}); retry until bound.
+    const bindCheck = setInterval(ensureObserver, 200);
+    return () => {
+      clearInterval(bindCheck);
+      if (ro) ro.disconnect();
+      cancelAnimationFrame(suggMeasureRaf);
+    };
   });
 
   async function loadTemplate() {
@@ -247,30 +310,81 @@
 
   function slotTotal(items) { return items.reduce((s, i) => s + (i.cal || 0), 0); }
 
-  // Suggestions that fit remaining goals — only show foods that won't exceed any tracked macro
+  // Suggestions that best fit remaining goals — soft scoring, not hard exclusion
   const suggestions = $derived.by(() => {
+    const calGoal = goals.calories || 2000;
+    const proteinGoal = goals.protein ?? 0;
+    const carbGoal = goals.netCarbs ?? 0;
+    const fatGoal = goals.fat ?? 0;
+
     const rem = {
-      cal: (goals.calories || 2000) - totals.cal,
-      protein: goals.protein != null ? goals.protein - totals.protein : Infinity,
-      netCarbs: goals.netCarbs != null ? goals.netCarbs - totals.netCarbs : Infinity,
-      fat: goals.fat != null ? goals.fat - totals.fat : Infinity,
+      cal: calGoal - totals.cal,
+      protein: proteinGoal - totals.protein,
+      netCarbs: carbGoal - totals.netCarbs,
+      fat: fatGoal - totals.fat,
     };
-    if (rem.cal <= 50) return [];
+
+    // No meaningful budget left — stop suggesting
+    if (rem.cal <= 30) return [];
+
+    // Skip foods already added to the day to keep suggestions fresh
+    const addedFoodIds = new Set();
+    for (const slot of Object.values(slots)) {
+      for (const item of slot) {
+        if (item.type === 'food' && item.refId) addedFoodIds.add(item.refId);
+      }
+    }
+
+    // Soft cap: a single 100g serving can use up to 1.3× remaining calories.
+    // We score for fit instead of hard-excluding once macros go negative.
+    const calCap = Math.max(rem.cal * 1.3, 100);
+
     return foods
       .filter(f =>
         f.calories > 0 &&
-        f.calories <= rem.cal &&
-        f.netCarbs <= rem.netCarbs &&
-        f.fat <= rem.fat
+        f.calories <= calCap &&
+        !addedFoodIds.has(f._id)
       )
       .map(f => {
         let score = 0;
-        if (goals.protein != null && rem.protein > 10) score += (f.protein / Math.max(f.calories, 1)) * 100;
+
+        // Fit calories well — prefer foods that take a reasonable bite of remaining budget
+        const calRatio = f.calories / Math.max(rem.cal, 1);
+        if (calRatio <= 1) score += (1 - Math.abs(calRatio - 0.25)) * 8;
+        else score -= (calRatio - 1) * 6;
+
+        // Reward foods that contribute to under-met macros (per kcal density)
+        const perKcal = (v) => v / Math.max(f.calories, 1);
+        if (rem.protein > 5)   score += perKcal(f.protein) * 120;
+        if (rem.netCarbs > 5)  score += perKcal(f.netCarbs) * 30;
+        if (rem.fat > 3)       score += perKcal(f.fat) * 40;
+
+        // Penalise foods that push further into already-overshot macros
+        if (rem.netCarbs <= 0 && f.netCarbs > 1) score -= f.netCarbs * 0.6;
+        if (rem.fat <= 0 && f.fat > 1)           score -= f.fat * 0.8;
+        if (rem.protein <= 0 && f.protein > 30)  score -= (f.protein - 30) * 0.2;
+
         return { ...f, score };
       })
       .sort((a, b) => b.score - a.score)
-      .slice(0, 4);
+      .slice(0, 6);
   });
+
+  // suggDndItems mirrors `suggestions` but is mutable so svelte-dnd-action
+  // can reorder during a drag. A $effect keeps it in sync reactively.
+  let isSuggDragging = $state(false);
+  // Header icon indicator runs as long as any card still wears the new-glow,
+  // so the icon and the cards stop animating at the same moment.
+  // Plus: on a fresh page (before the user has interacted with the panel) the
+  // icon sparks continuously so the user notices the suggestions exist, while
+  // no individual card glows. The continuous icon spark stops on first interaction.
+  const hasNewSuggs = $derived(
+    newSuggIds.size > 0 || (!userHasInteractedSugg && suggDndItems.length > 0)
+  );
+
+  function markUserInteractedSugg() {
+    if (!userHasInteractedSugg) userHasInteractedSugg = true;
+  }
 
   function syncSuggestions() {
     suggDndItems = suggestions.map(f => ({
@@ -283,6 +397,138 @@
     }));
   }
 
+  $effect(() => {
+    // Re-run whenever the derived suggestions list changes (foods/totals/goals/slots)
+    suggestions;
+    if (!isSuggDragging) syncSuggestions();
+  });
+
+  // Track which suggestion ids are *new* compared to the previous render so
+  // we can highlight them and sparkle the header/icon when they arrive.
+  $effect(() => {
+    const currentIds = new Set(suggDndItems.map(s => s.id));
+    if (isSuggDragging) { prevSuggIds = currentIds; return; }
+
+    // Drop newSuggIds entries that are no longer in the list
+    const stillNew = new Set();
+    for (const id of newSuggIds) if (currentIds.has(id)) stillNew.add(id);
+    if (stillNew.size !== newSuggIds.size) newSuggIds = stillNew;
+
+    const stillUnseen = new Set();
+    for (const id of unseenNewIds) if (currentIds.has(id)) stillUnseen.add(id);
+    if (stillUnseen.size !== unseenNewIds.size) unseenNewIds = stillUnseen;
+
+    const fresh = new Set();
+    for (const id of currentIds) if (!prevSuggIds.has(id)) fresh.add(id);
+
+    // Don't treat list deltas as "new arrivals" until the user has actually
+    // interacted with the panel. This is interaction-gated rather than
+    // time-gated so it stays correct regardless of when stores hydrate
+    // (auth/planner/templates can settle long after mount).
+    if (fresh.size > 0 && userHasInteractedSugg) {
+      newSuggIds = new Set([...newSuggIds, ...fresh]);
+      unseenNewIds = new Set([...unseenNewIds, ...fresh]);
+      suggHeaderSparkle = true;
+
+      clearTimeout(suggHeaderSparkleTimer);
+      suggHeaderSparkleTimer = setTimeout(() => { suggHeaderSparkle = false; }, 1200);
+
+      // Border/glow effect lingers as a "newness" marker (~10s)
+      clearTimeout(newSuggClearTimer);
+      newSuggClearTimer = setTimeout(() => { newSuggIds = new Set(); }, 10000);
+
+      // NEW tag clears once seen — auto-clear if panel is open
+      if (suggOpen) {
+        clearTimeout(unseenTagClearTimer);
+        unseenTagClearTimer = setTimeout(() => { unseenNewIds = new Set(); }, 1800);
+      }
+    }
+    prevSuggIds = currentIds;
+  });
+
+  function toggleSugg() {
+    markUserInteractedSugg();
+    suggOpen = !suggOpen;
+    if (suggOpen) {
+      // Once the user opens the panel, schedule the NEW tags to clear
+      clearTimeout(unseenTagClearTimer);
+      unseenTagClearTimer = setTimeout(() => { unseenNewIds = new Set(); }, 1800);
+    }
+  }
+
+  // Walk the rendered cards' offsetTop, find the first 2 unique row positions,
+  // and mark every card on row 3+ as "overflow" (hidden visually + a11y).
+  function measureSuggOverflow() {
+    // Never measure (and never toggle the overflow class) while the user is
+    // dragging a suggestion. dnd-action mutates suggDndItems on every
+    // pointermove, and clipping the dragged card mid-flight makes it vanish
+    // under the cursor and breaks dropping into slots.
+    if (!suggGridEl || isSuggDragging) return;
+    const cards = Array.from(suggGridEl.querySelectorAll('[data-sugg-id]'));
+    if (cards.length === 0) {
+      if (overflowSuggIds.size > 0) overflowSuggIds = new Set();
+      if (suggSingleRow) suggSingleRow = false;
+      return;
+    }
+
+    // Group cards by their row's offsetTop
+    const rowMap = new Map();
+    for (const card of cards) {
+      const top = card.offsetTop;
+      if (!rowMap.has(top)) rowMap.set(top, []);
+      rowMap.get(top).push(card);
+    }
+    const rows = [...rowMap.entries()].sort((a, b) => a[0] - b[0]);
+
+    // If row 2 would only hold 2 or fewer items, hide them — collapse to 1 row.
+    const row2Sparse = rows.length >= 2 && rows[1][1].length <= 2;
+    const visibleRowCount = row2Sparse ? 1 : Math.min(rows.length, 2);
+
+    const next = new Set();
+    for (let i = visibleRowCount; i < rows.length; i++) {
+      for (const card of rows[i][1]) {
+        const id = card.dataset.suggId;
+        if (id) next.add(id);
+      }
+    }
+
+    const wantSingle = visibleRowCount === 1;
+    if (suggSingleRow !== wantSingle) suggSingleRow = wantSingle;
+    if (next.size !== overflowSuggIds.size ||
+        [...next].some(id => !overflowSuggIds.has(id))) {
+      overflowSuggIds = next;
+    }
+  }
+  function scheduleSuggMeasure() {
+    cancelAnimationFrame(suggMeasureRaf);
+    suggMeasureRaf = requestAnimationFrame(measureSuggOverflow);
+  }
+  // Re-measure whenever the rendered list changes (items added/removed/reordered).
+  $effect(() => {
+    suggDndItems;
+    if (suggGridEl) scheduleSuggMeasure();
+  });
+
+  // Hovering / focusing a new card "acknowledges" it: drop its glow + tag.
+  // The header icon stops only once newSuggIds is empty (handled by hasNewSuggs).
+  function acknowledgeNewSugg(id) {
+    // dnd-action fires pointerenter on every card the cursor crosses while
+    // dragging. Don't mutate state mid-flight or we cause re-renders on the
+    // suggestion grid while the drag is active.
+    if (isSuggDragging) return;
+    markUserInteractedSugg();
+    if (newSuggIds.has(id)) {
+      const next = new Set(newSuggIds);
+      next.delete(id);
+      newSuggIds = next;
+    }
+    if (unseenNewIds.has(id)) {
+      const nextU = new Set(unseenNewIds);
+      nextU.delete(id);
+      unseenNewIds = nextU;
+    }
+  }
+
   // Click-to-add with flash
   function flashItem(id) {
     flashItems = new Set([...flashItems, id]);
@@ -292,6 +538,7 @@
   }
 
   function addFood(food) {
+    markUserInteractedSugg();
     const id = nextId++;
     slots[activeSlot] = [...slots[activeSlot], {
       id, type: 'food', refId: food._id, quantity: 100,
@@ -305,6 +552,7 @@
     syncSuggestions();
   }
   function addMeal(meal) {
+    markUserInteractedSugg();
     const id = nextId++;
     const tm = meal.totalMacros || {};
     slots[activeSlot] = [...slots[activeSlot], {
@@ -324,12 +572,27 @@
   function handleFoodFinalize(e) { syncSources(); syncSuggestions(); }
   function handleMealConsider(e) { mealDndItems = e.detail.items; }
   function handleMealFinalize(e) { syncSources(); syncSuggestions(); }
-  function handleSuggConsider(e) { suggDndItems = e.detail.items; }
-  function handleSuggFinalize(e) { syncSuggestions(); }
+  function handleSuggConsider(e) { markUserInteractedSugg(); isSuggDragging = true; suggDndItems = e.detail.items; }
+  function handleSuggFinalize(e) {
+    isSuggDragging = false;
+    syncSuggestions();
+    // Drag is over — let layout settle and then re-evaluate which cards fit.
+    requestAnimationFrame(() => requestAnimationFrame(scheduleSuggMeasure));
+  }
 
   // DnD Slot handlers
-  function handleSlotConsider(slot, e) { slots[slot] = e.detail.items; slots = { ...slots }; }
+  function handleSlotConsider(slot, e) {
+    // Don't touch activeSlot here — it fires on every pointermove while
+    // dragging and re-renders the slot's active styling mid-drag, which
+    // disturbs dnd-action's drop-target geometry. Set activeSlot at
+    // finalize (drop) instead.
+    slots[slot] = e.detail.items;
+    slots = { ...slots };
+  }
   function handleSlotFinalize(slot, e) {
+    markUserInteractedSugg();
+    // Whatever slot the drop landed in is now the active one.
+    if (activeSlot !== slot) activeSlot = slot;
     slots[slot] = e.detail.items.map(item => {
       if (item[SHADOW_ITEM_MARKER_PROPERTY_NAME]) return item;
       const sid = String(item.id);
@@ -394,7 +657,7 @@
     syncSuggestions();
   }
 
-  function removeItem(slot, id) { slots[slot] = slots[slot].filter(i => i.id !== id); slots = { ...slots }; syncSuggestions(); }
+  function removeItem(slot, id) { markUserInteractedSugg(); slots[slot] = slots[slot].filter(i => i.id !== id); slots = { ...slots }; syncSuggestions(); }
 
   async function savePlan() {
     if (!dirty || saving) return;
@@ -550,7 +813,10 @@
   }
 </script>
 
-<svelte:window onbeforeunload={(e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } }} />
+<svelte:window
+  onbeforeunload={(e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } }}
+  onclick={() => { if (slotMenuOpen) slotMenuOpen = false; }}
+/>
 
 <svelte:head><title>Daily Planner — MacroX</title></svelte:head>
 
@@ -652,115 +918,277 @@
   <div class="planner-layout">
     <!-- Source Panel -->
     <div class="source-panel animate-slide-up stagger-3">
-      <input type="text" class="input" placeholder="Search foods..." value={search} oninput={(e) => { search = e.target.value; syncSources(); }} />
+      <!-- Combined search row: slot chip + search + filter toggle -->
+      <div class="search-row">
+        <div class="slot-chip-wrap">
+          <button
+            class="slot-chip"
+            class:slot-chip-open={slotMenuOpen}
+            onclick={(e) => { e.stopPropagation(); slotMenuOpen = !slotMenuOpen; }}
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={slotMenuOpen}
+          >
+            <span class="slot-chip-label">Add to</span>
+            <span class="slot-chip-value">{slotLabels[activeSlot]}</span>
+            <span class="slot-chip-caret" class:slot-chip-caret-open={slotMenuOpen}>
+              <ChevronDown size={12} strokeWidth={1.75} />
+            </span>
+          </button>
+          {#if slotMenuOpen}
+            <div class="slot-menu" role="menu" transition:scale={{ duration: 140, start: 0.94, easing: quintOut }}>
+              {#each Object.entries(slotLabels) as [key, label]}
+                <button
+                  class="slot-menu-item"
+                  class:slot-menu-active={activeSlot === key}
+                  onclick={(e) => { e.stopPropagation(); pickSlot(key); }}
+                  type="button"
+                  role="menuitem"
+                >
+                  <span>{label}</span>
+                  {#if activeSlot === key}<Check size={11} strokeWidth={2} />{/if}
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
 
-      <div class="category-chips">
-        {#each categories as cat}
-          <button class="chip" class:chip-active={activeCategory === cat} onclick={() => { activeCategory = cat; syncSources(); }}>{cat}</button>
-        {/each}
+        <div class="search-wrap">
+          <span class="search-icon"><Search size={13} strokeWidth={1.75} /></span>
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search foods…"
+            value={search}
+            oninput={(e) => { search = e.target.value; syncSources(); }}
+          />
+          {#if search}
+            <button class="search-clear" onclick={() => { search = ''; syncSources(); }} type="button" aria-label="Clear search" transition:fade={{ duration: 100 }}>
+              <X size={11} strokeWidth={2} />
+            </button>
+          {/if}
+        </div>
+
+        <button
+          class="filter-btn"
+          class:filter-active={showFilters || activeCategory !== 'All'}
+          onclick={() => showFilters = !showFilters}
+          type="button"
+          aria-label="Filters"
+          aria-pressed={showFilters}
+          title="Filter by category"
+        >
+          <SlidersHorizontal size={13} strokeWidth={1.75} />
+          {#if activeCategory !== 'All' && !showFilters}
+            <span class="filter-dot" transition:scale={{ duration: 150, start: 0.4 }}></span>
+          {/if}
+        </button>
       </div>
 
-      <!-- Slot picker — always visible -->
-      <div class="slot-picker-section">
-        <span class="slot-picker-label">Add to</span>
-        <div class="slot-picker">
-          {#each Object.entries(slotLabels) as [key, label]}
-            <button class="pick-btn" class:pick-active={activeSlot === key} onclick={() => activeSlot = key}>{label}</button>
-          {/each}
+      <!-- Collapsible filters drawer — minimalist text-tab row -->
+      <div class="filters-wrap" class:filters-open={showFilters} aria-hidden={!showFilters}>
+        <div class="filters-inner">
+          <button
+            class="filters-nav filters-nav-left"
+            class:filters-nav-disabled={!canScrollLeft}
+            onclick={() => scrollFilters(-1)}
+            type="button"
+            tabindex={showFilters && canScrollLeft ? 0 : -1}
+            aria-label="Scroll filters left"
+          >
+            <ChevronLeft size={14} strokeWidth={1.75} />
+          </button>
+          <div
+            class="filters"
+            class:filters-fade-left={canScrollLeft}
+            class:filters-fade-right={canScrollRight}
+            bind:this={filtersEl}
+            onscroll={updateFiltersScrollState}
+          >
+            {#each categories as cat (cat)}
+              <button
+                class="chip"
+                class:chip-active={activeCategory === cat}
+                onclick={() => { activeCategory = cat; syncSources(); }}
+                type="button"
+                tabindex={showFilters ? 0 : -1}
+              >
+                <span class="chip-label">{cat}</span>
+              </button>
+            {/each}
+          </div>
+          <button
+            class="filters-nav filters-nav-right"
+            class:filters-nav-disabled={!canScrollRight}
+            onclick={() => scrollFilters(1)}
+            type="button"
+            tabindex={showFilters && canScrollRight ? 0 : -1}
+            aria-label="Scroll filters right"
+          >
+            <ChevronRight size={14} strokeWidth={1.75} />
+          </button>
         </div>
       </div>
 
-      <!-- Suggestions (draggable + clickable) -->
+      <!-- Suggestions: collapsible, draggable -->
       {#if suggDndItems.length > 0}
-        <div class="source-section">
-          <div class="section-header"><Sparkles size={12} strokeWidth={1.5} /><span class="section-tag">Suggested for you</span></div>
-          <div
-            class="card-grid dnd-source"
-            use:dndzone={{ items: suggDndItems, flipDurationMs: FLIP_MS, type: ZONE, dropFromOthersDisabled: true, dropTargetStyle: {} }}
-            onconsider={handleSuggConsider}
-            onfinalize={handleSuggFinalize}
+        <div class="sugg-row" transition:slide={{ duration: 200, easing: quintOut }}>
+          <button
+            class="sugg-header"
+            class:sugg-header-sparkle={suggHeaderSparkle}
+            onclick={toggleSugg}
+            type="button"
+            aria-expanded={suggOpen}
+            aria-controls="sugg-body"
           >
-            {#each suggDndItems as item (item.id)}
-              <div class="food-card food-card-draggable" animate:flip={{ duration: FLIP_MS }}>
-                <div class="fc-grip"><GripVertical size={11} strokeWidth={1.5} /></div>
-                <div class="fc-content">
-                  <span class="fc-name">{item.name}</span>
-                  <div class="fc-macros">
-                    <span class="fc-macro mono" style="color: var(--cal)">{item.calories} cal</span>
-                    <span class="fc-macro mono" style="color: var(--pro)">{item.protein}p</span>
-                    <span class="fc-macro mono" style="color: var(--carb)">{item.netCarbs}c</span>
-                    <span class="fc-macro mono" style="color: var(--fat)">{item.fat}f</span>
-                  </div>
-                </div>
-                <button class="fc-add" onclick={(e) => { e.stopPropagation(); addFood(item); }} aria-label="Add {item.name}">
-                  <Plus size={13} strokeWidth={1.5} />
+            <span class="sugg-icon" class:sugg-icon-pulse={hasNewSuggs}>
+              <Sparkles size={11} strokeWidth={1.75} />
+              {#if hasNewSuggs}
+                <span class="sugg-icon-spark sugg-icon-spark-1" aria-hidden="true"></span>
+                <span class="sugg-icon-spark sugg-icon-spark-2" aria-hidden="true"></span>
+                <span class="sugg-icon-spark sugg-icon-spark-3" aria-hidden="true"></span>
+              {/if}
+            </span>
+            <span class="sugg-tag">Suggested for you</span>
+            <span class="sugg-caret" class:sugg-caret-open={suggOpen}>
+              <ChevronDown size={11} strokeWidth={2} />
+            </span>
+          </button>
+          <div class="sugg-body" class:sugg-body-open={suggOpen} id="sugg-body" aria-hidden={!suggOpen}>
+            <div
+              class="sugg-grid dnd-source"
+              class:sugg-grid-single-row={suggSingleRow}
+              class:sugg-grid-dragging={isSuggDragging}
+              bind:this={suggGridEl}
+              use:dndzone={{ items: suggDndItems, flipDurationMs: FLIP_MS, type: ZONE, dropFromOthersDisabled: true, dropTargetStyle: {}, centreDraggedOnCursor: true }}
+              onconsider={handleSuggConsider}
+              onfinalize={handleSuggFinalize}
+            >
+              {#each suggDndItems as item, i (item.id)}
+                <button
+                  class="sugg-card"
+                  class:sugg-card-new={newSuggIds.has(item.id)}
+                  class:sugg-card-overflow={overflowSuggIds.has(item.id)}
+                  data-sugg-id={item.id}
+                  type="button"
+                  tabindex={suggOpen && !overflowSuggIds.has(item.id) ? 0 : -1}
+                  aria-hidden={overflowSuggIds.has(item.id) ? 'true' : undefined}
+                  onclick={() => addFood(item)}
+                  onpointerenter={() => acknowledgeNewSugg(item.id)}
+                  onfocus={() => acknowledgeNewSugg(item.id)}
+                  animate:flip={{ duration: FLIP_MS }}
+                >
+                  {#if newSuggIds.has(item.id)}
+                    <span class="sc-spark sc-spark-1" aria-hidden="true"></span>
+                    <span class="sc-spark sc-spark-2" aria-hidden="true"></span>
+                    <span class="sc-spark sc-spark-3" aria-hidden="true"></span>
+                  {/if}
+                  {#if unseenNewIds.has(item.id)}
+                    <span class="sc-new-tag" aria-hidden="true" transition:scale={{ duration: 220, start: 0.4, easing: backOut }}>NEW</span>
+                  {/if}
+                  <span class="sc-name">{item.name}</span>
+                  <span class="sc-meta mono">
+                    <span class="sc-cal">{item.calories}</span>
+                    <span class="sc-unit">kcal</span>
+                    <span class="sc-sep">·</span>
+                    <span class="sc-pro">{item.protein}p</span>
+                  </span>
                 </button>
-              </div>
-            {/each}
+              {/each}
+            </div>
           </div>
         </div>
       {/if}
 
-      <!-- Foods (draggable + clickable) -->
-      <div class="source-section">
-        <div class="section-header"><span class="section-tag">Foods</span><span class="section-count">{foodDndItems.length}</span></div>
+      <!-- Tabs: Foods / My Meals -->
+      <div class="tabs" role="tablist">
+        <button
+          class="tab"
+          class:tab-active={activeTab === 'foods'}
+          onclick={() => activeTab = 'foods'}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'foods'}
+        >
+          <span>Foods</span>
+          <span class="tab-count">{foodDndItems.length}</span>
+        </button>
+        <button
+          class="tab"
+          class:tab-active={activeTab === 'meals'}
+          onclick={() => activeTab = 'meals'}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'meals'}
+        >
+          <span>My Meals</span>
+          <span class="tab-count">{mealDndItems.length}</span>
+        </button>
+      </div>
+
+      <!-- List -->
+      {#if activeTab === 'foods'}
         <div
-          class="card-grid dnd-source"
+          class="list dnd-source"
           use:dndzone={{ items: foodDndItems, flipDurationMs: FLIP_MS, type: ZONE, dropFromOthersDisabled: true, dropTargetStyle: {} }}
           onconsider={handleFoodConsider}
           onfinalize={handleFoodFinalize}
         >
           {#each foodDndItems as item (item.id)}
-            <div class="food-card food-card-draggable" animate:flip={{ duration: FLIP_MS }}>
-              <div class="fc-grip"><GripVertical size={11} strokeWidth={1.5} /></div>
-              <div class="fc-content">
-                <span class="fc-name">{item.name}</span>
-                <div class="fc-macros">
-                  <span class="fc-macro mono" style="color: var(--cal)">{item.calories} cal</span>
-                  <span class="fc-macro mono" style="color: var(--pro)">{item.protein}p</span>
-                  <span class="fc-macro mono" style="color: var(--carb)">{item.netCarbs}c</span>
-                  <span class="fc-macro mono" style="color: var(--fat)">{item.fat}f</span>
-                </div>
+            <button
+              class="row"
+              type="button"
+              onclick={() => addFood(item)}
+              animate:flip={{ duration: FLIP_MS }}
+            >
+              <div class="row-top">
+                <span class="row-name">{item.name}</span>
+                <span class="row-cal mono">{item.calories}<span class="row-cal-unit"> kcal</span></span>
               </div>
-              <button class="fc-add" onclick={(e) => { e.stopPropagation(); addFood(item); }} aria-label="Add {item.name}">
-                <Plus size={13} strokeWidth={1.5} />
-              </button>
-            </div>
+              <div class="row-macros mono">
+                <span class="rm" data-k="p">{item.protein}p</span>
+                <span class="rm-sep">·</span>
+                <span class="rm" data-k="c">{item.netCarbs}c</span>
+                <span class="rm-sep">·</span>
+                <span class="rm" data-k="f">{item.fat}f</span>
+              </div>
+            </button>
           {/each}
         </div>
         {#if foodDndItems.length === 0}
-          <p class="source-empty">No foods match your search</p>
+          <p class="empty" transition:fade={{ duration: 150 }}>No foods match your search</p>
         {/if}
-      </div>
-
-      <!-- My Meals (draggable + clickable) -->
-      {#if mealDndItems.length > 0}
-        <div class="source-section">
-          <div class="section-header"><span class="section-tag">My Meals</span><span class="section-count">{mealDndItems.length}</span></div>
-          <div
-            class="card-grid dnd-source"
-            onconsider={handleMealConsider}
-            onfinalize={handleMealFinalize}
-          >
-            {#each mealDndItems as item (item.id)}
-              <div class="food-card food-card-draggable" animate:flip={{ duration: FLIP_MS }}>
-                <div class="fc-grip"><GripVertical size={11} strokeWidth={1.5} /></div>
-                <div class="fc-content">
-                  <span class="fc-name">{item.name}</span>
-                  <div class="fc-macros">
-                    <span class="fc-macro mono" style="color: var(--cal)">{item.calories} cal</span>
-                    <span class="fc-macro mono" style="color: var(--pro)">{item.protein}p</span>
-                    <span class="fc-macro mono" style="color: var(--carb)">{item.netCarbs}c</span>
-                    <span class="fc-macro mono" style="color: var(--fat)">{item.fat}f</span>
-                  </div>
-                </div>
-                <button class="fc-add" onclick={(e) => { e.stopPropagation(); addMeal(item); }} aria-label="Add {item.name}">
-                  <Plus size={13} strokeWidth={1.5} />
-                </button>
+      {:else}
+        <div
+          class="list dnd-source"
+          use:dndzone={{ items: mealDndItems, flipDurationMs: FLIP_MS, type: ZONE, dropFromOthersDisabled: true, dropTargetStyle: {} }}
+          onconsider={handleMealConsider}
+          onfinalize={handleMealFinalize}
+        >
+          {#each mealDndItems as item (item.id)}
+            <button
+              class="row"
+              type="button"
+              onclick={() => addMeal(item)}
+              animate:flip={{ duration: FLIP_MS }}
+            >
+              <div class="row-top">
+                <span class="row-name">{item.name}</span>
+                <span class="row-cal mono">{item.calories}<span class="row-cal-unit"> kcal</span></span>
               </div>
-            {/each}
-          </div>
+              <div class="row-macros mono">
+                <span class="rm" data-k="p">{item.protein}p</span>
+                <span class="rm-sep">·</span>
+                <span class="rm" data-k="c">{item.netCarbs}c</span>
+                <span class="rm-sep">·</span>
+                <span class="rm" data-k="f">{item.fat}f</span>
+              </div>
+            </button>
+          {/each}
         </div>
+        {#if mealDndItems.length === 0}
+          <p class="empty" transition:fade={{ duration: 150 }}>No saved meals yet</p>
+        {/if}
       {/if}
     </div>
 
@@ -768,9 +1196,61 @@
     <div class="slots-panel">
       {#each Object.entries(slotLabels) as [key, label], i}
         {@const items = slots[key]}
-        <div class="meal-slot animate-slide-up stagger-{i + 4}" class:slot-active-target={activeSlot === key}>
+        {@const SlotIcon = slotIcons[key]}
+        <div
+          class="meal-slot animate-slide-up stagger-{i + 4}"
+          class:slot-active-target={activeSlot === key}
+          onclick={() => { activeSlot = key; }}
+          onkeydown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); activeSlot = key; } }}
+          role="button"
+          tabindex="0"
+          aria-pressed={activeSlot === key}
+          aria-label={`Activate ${label} slot`}
+        >
           <div class="slot-header">
             <div class="slot-left">
+              <span class="slot-icon slot-icon-{key}">
+                <span class="ic-outline"><SlotIcon size={18} strokeWidth={1.5} /></span>
+                <span class="ic-filled" aria-hidden="true">
+                  {#if key === 'breakfast'}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a574" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2v8"/>
+                      <path d="m4.93 10.93 1.41 1.41"/>
+                      <path d="M2 18h2"/>
+                      <path d="M20 18h2"/>
+                      <path d="m19.07 10.93-1.41 1.41"/>
+                      <path d="M22 22H2"/>
+                      <path d="m8 6 4-4 4 4"/>
+                      <path d="M16 18a4 4 0 0 0-8 0" fill="#d4a574"/>
+                    </svg>
+                  {:else if key === 'lunch'}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a574" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="4" fill="#d4a574"/>
+                      <path d="M12 2v2"/>
+                      <path d="M12 20v2"/>
+                      <path d="m4.93 4.93 1.41 1.41"/>
+                      <path d="m17.66 17.66 1.41 1.41"/>
+                      <path d="M2 12h2"/>
+                      <path d="M20 12h2"/>
+                      <path d="m6.34 17.66-1.41 1.41"/>
+                      <path d="m19.07 4.93-1.41 1.41"/>
+                    </svg>
+                  {:else if key === 'dinner'}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#b8c0e0" stroke="#b8c0e0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                  {:else}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b8956d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5" fill="#b8956d"/>
+                      <path d="M8.5 8.5v.01" stroke="#5a3820" stroke-width="2.2"/>
+                      <path d="M16 15.5v.01" stroke="#5a3820" stroke-width="2.2"/>
+                      <path d="M12 12v.01" stroke="#5a3820" stroke-width="2.2"/>
+                      <path d="M11 17v.01" stroke="#5a3820" stroke-width="2.2"/>
+                      <path d="M7 14v.01" stroke="#5a3820" stroke-width="2.2"/>
+                    </svg>
+                  {/if}
+                </span>
+              </span>
               <span class="slot-name">{label}</span>
               {#if items.length > 0}<span class="slot-count">{items.length}</span>{/if}
             </div>
@@ -780,7 +1260,7 @@
           <div
             class="slot-zone"
             class:slot-zone-empty={items.length === 0}
-            use:dndzone={{ items, flipDurationMs: FLIP_MS, type: ZONE, dropTargetClasses: ['slot-drop-highlight'], dropTargetStyle: {} }}
+            use:dndzone={{ items, flipDurationMs: FLIP_MS, type: ZONE, dropTargetClasses: ['slot-drop-highlight'], dropTargetStyle: {}, centreDraggedOnCursor: true, morphDisabled: true }}
             onconsider={(e) => handleSlotConsider(key, e)}
             onfinalize={(e) => handleSlotFinalize(key, e)}
           >
@@ -788,20 +1268,22 @@
               <div class="slot-item" class:slot-item-flash={flashItems.has(item.id)} animate:flip={{ duration: FLIP_MS }}>
                 <div class="si-main">
                   <span class="si-name">{item.name}</span>
-                  <div class="si-macros">
-                    <span class="si-macro mono" style="color: var(--cal)">{item.cal} cal</span>
-                    <span class="si-macro mono" style="color: var(--pro)">{item.protein}p</span>
-                    <span class="si-macro mono" style="color: var(--carb)">{item.netCarbs}c</span>
-                    <span class="si-macro mono" style="color: var(--fat)">{item.fat}f</span>
+                  <div class="si-macros mono">
+                    <span class="rm" data-k="p">{item.protein}p</span>
+                    <span class="rm-sep">·</span>
+                    <span class="rm" data-k="c">{item.netCarbs}c</span>
+                    <span class="rm-sep">·</span>
+                    <span class="rm" data-k="f">{item.fat}f</span>
                   </div>
                 </div>
                 <div class="si-controls">
+                  <span class="si-cal mono">{item.cal}<span class="si-cal-unit"> kcal</span></span>
                   <div class="si-qty">
                     <input type="number" class="qty-input mono" value={item.quantity} min="1"
                       oninput={(e) => updateQuantity(key, item.id, Number(e.target.value))} />
                     <span class="qty-label">g</span>
                   </div>
-                  <button class="si-rm" onclick={() => removeItem(key, item.id)}><X size={13} strokeWidth={1.5} /></button>
+                  <button class="si-rm" onclick={() => removeItem(key, item.id)} aria-label="Remove"><X size={12} strokeWidth={1.5} /></button>
                 </div>
               </div>
             {/each}
@@ -809,7 +1291,9 @@
 
           {#if items.length === 0}
             <div class="slot-empty">
-              <span class="slot-empty-text">Drag or click + to add items</span>
+              <span class="slot-empty-text">
+                {activeSlot === key ? 'Click a food to add it here' : 'Drag a food here'}
+              </span>
             </div>
           {/if}
         </div>
@@ -1009,94 +1493,713 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    /* Use sibling-margin instead of gap so slide-in elements can animate
+       their spacing too (gap is instant, margin is transitionable). */
   }
+  .source-panel > * + * { margin-top: var(--space-4); }
 
-  .category-chips { display: flex; gap: var(--space-1); flex-wrap: wrap; }
-  .chip {
-    padding: 2px 10px; font-size: var(--font-xs); font-family: var(--font-sans); font-weight: 500;
-    border: var(--border-width) solid var(--border); border-radius: var(--radius-full);
-    background: transparent; color: var(--text-3); cursor: pointer; transition: all var(--transition-fast); white-space: nowrap;
-  }
-  .chip:hover { border-color: var(--border-strong); color: var(--text-1); }
-  .chip-active { border-color: var(--text-2); color: var(--text-0); }
-
-  /* Slot picker — always visible */
-  .slot-picker-section { display: flex; align-items: center; gap: var(--space-3); }
-  .slot-picker-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; white-space: nowrap; }
-  .slot-picker { display: flex; gap: 1px; background: var(--border); border-radius: var(--radius-sm); overflow: hidden; flex: 1; }
-  .pick-btn {
-    flex: 1; padding: 4px 0; font-size: 11px; font-family: var(--font-sans); font-weight: 500;
-    border: none; background: var(--bg-0); color: var(--text-3); cursor: pointer; transition: all var(--transition-fast);
-  }
-  .pick-btn:hover { color: var(--text-1); }
-  .pick-active { color: var(--text-0); background: var(--bg-active); }
-
-  .source-section { display: flex; flex-direction: column; gap: var(--space-3); }
-  .section-header { display: flex; align-items: center; gap: var(--space-2); color: var(--text-2); }
-  .section-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
-  .section-count { font-size: 11px; color: var(--text-3); margin-left: auto; }
-
-  /* ── Food Cards ── */
-  .card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-2); }
-
-  .food-card {
-    position: relative;
-    display: flex; flex-direction: column; gap: var(--space-2);
-    padding: var(--space-3); border: var(--border-width) solid var(--border);
-    border-radius: var(--radius-md); background: transparent;
-    text-align: left; font-family: var(--font-sans);
-    transition: border-color var(--transition-fast), background var(--transition-fast);
-  }
-
-  /* Draggable cards: row layout with grip + content + add button */
-  .food-card-draggable {
-    flex-direction: row;
-    align-items: center;
+  /* ── Combined search row (slot chip + search + filter toggle) ── */
+  .search-row {
+    display: flex;
+    align-items: stretch;
     gap: var(--space-2);
+  }
+
+  .slot-chip-wrap { position: relative; }
+
+  .slot-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 10px;
+    background: var(--bg-hover);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    color: var(--text-1);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+    white-space: nowrap;
+  }
+  .slot-chip:hover { border-color: var(--border-strong); color: var(--text-0); }
+  .slot-chip-open { border-color: var(--border-strong); background: var(--bg-active); }
+  .slot-chip-label { color: var(--text-3); font-weight: 500; }
+  .slot-chip-value { font-weight: 600; color: var(--text-0); }
+  .slot-chip-caret {
+    display: inline-flex;
+    color: var(--text-3);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+    margin-left: 1px;
+  }
+  .slot-chip:hover .slot-chip-caret { color: var(--text-1); }
+  .slot-chip-caret-open { transform: rotate(180deg); color: var(--text-1); }
+
+  .slot-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 150px;
+    background: var(--bg-modal);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    z-index: 30;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+    display: flex;
+    flex-direction: column;
+    transform-origin: top left;
+  }
+  .slot-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    text-align: left;
+    padding: 7px 10px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    color: var(--text-1);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  .slot-menu-item:hover { background: var(--bg-hover); color: var(--text-0); }
+  .slot-menu-active { color: var(--text-0); background: var(--bg-active); font-weight: 600; }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    display: inline-flex;
+    color: var(--text-3);
+    pointer-events: none;
+    transition: color var(--transition-fast);
+  }
+  .search-wrap:focus-within .search-icon { color: var(--text-1); }
+  .search-input {
+    width: 100%;
+    height: 34px;
+    padding: 0 30px 0 32px;
+    background: transparent;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    color: var(--text-0);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .search-input::placeholder { color: var(--text-3); }
+  .search-input:focus {
+    outline: none;
+    border-color: var(--text-2);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+  }
+  .search-clear {
+    position: absolute;
+    right: 8px;
+    width: 18px; height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-3);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+  .search-clear:hover { color: var(--text-0); background: var(--bg-hover); }
+
+  .filter-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: transparent;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-2);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+    flex-shrink: 0;
+  }
+  .filter-btn:hover { border-color: var(--border-strong); color: var(--text-0); }
+  .filter-active { border-color: var(--text-2); color: var(--text-0); background: var(--bg-hover); }
+  .filter-dot {
+    position: absolute;
+    top: 5px; right: 5px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--bg-0);
+  }
+
+  /* ── Filters drawer — grid-rows trick for reliable smooth open/close ── */
+  .filters-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 280ms cubic-bezier(0.34, 1.2, 0.64, 1),
+                margin-top 280ms cubic-bezier(0.34, 1.2, 0.64, 1),
+                opacity 220ms ease;
+    margin-top: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .filters-wrap.filters-open {
+    grid-template-rows: 1fr;
+    margin-top: var(--space-3) !important;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .filters-inner {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+    border-bottom: var(--border-width) solid var(--surface-border);
+  }
+  .filters-nav {
+    position: absolute;
+    top: 0;
+    bottom: 1px;
+    width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to right, var(--bg-0) 0, var(--bg-0) 60%, transparent);
+    border: none;
+    color: var(--text-1);
+    cursor: pointer;
+    z-index: 2;
+    transition: color 180ms ease, opacity 180ms ease;
+  }
+  .filters-nav-left { left: 0; justify-content: flex-start; padding-left: 2px; }
+  .filters-nav-right {
+    right: 0;
+    justify-content: flex-end;
+    padding-right: 2px;
+    background: linear-gradient(to left, var(--bg-0) 0, var(--bg-0) 60%, transparent);
+  }
+  .filters-nav:hover { color: var(--text-0); }
+  .filters-nav-disabled {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .filters {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .filters-fade-left {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 16px);
+            mask-image: linear-gradient(to right, transparent 0, #000 16px);
+  }
+  .filters-fade-right {
+    -webkit-mask-image: linear-gradient(to left, transparent 0, #000 16px);
+            mask-image: linear-gradient(to left, transparent 0, #000 16px);
+  }
+  .filters-fade-left.filters-fade-right {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+  }
+
+  .chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 11px 16px;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: var(--text-3);
+    cursor: pointer;
+    white-space: nowrap;
+    letter-spacing: 0.005em;
+    flex-shrink: 0;
+    scroll-snap-align: center;
+    transition: color 180ms ease;
+  }
+  .chip::after {
+    content: '';
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: -1px;
+    height: 1.5px;
+    background: var(--text-0);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .chip-label { display: inline-block; }
+  .chip:hover { color: var(--text-1); }
+  .chip-active {
+    color: var(--text-0);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .chip-active::after { transform: scaleX(1); }
+  .chip:focus-visible {
+    outline: none;
+    color: var(--text-0);
+  }
+
+  /* ── Suggestions: collapsible ── */
+  .sugg-row { display: flex; flex-direction: column; gap: 4px; }
+  .sugg-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    align-self: flex-start;
+    padding: 4px 8px 4px 4px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-3);
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+  .sugg-header:hover { color: var(--text-1); background: var(--bg-hover); }
+  .sugg-header :global(svg) { color: var(--text-2); transition: color var(--transition-fast); }
+  .sugg-header:hover :global(svg) { color: var(--text-0); }
+  .sugg-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .sugg-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+  }
+  .sugg-icon-pulse :global(svg) {
+    color: var(--cal);
+    animation: suggIconPulse 1.6s ease-in-out infinite;
+  }
+  .sugg-icon-spark {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    animation: iconSparkLoop 1800ms ease-out infinite;
+  }
+  .sugg-icon-spark-1 { top: -2px; left: -2px; background: var(--cal); box-shadow: 0 0 6px var(--cal); animation-delay: 0ms; }
+  .sugg-icon-spark-2 { bottom: -2px; right: 0px; background: var(--pro); box-shadow: 0 0 6px var(--pro); animation-delay: 600ms; }
+  .sugg-icon-spark-3 { top: 40%; right: -3px; background: var(--carb); box-shadow: 0 0 6px var(--carb); animation-delay: 1200ms; }
+  .sugg-header-sparkle .sugg-tag {
+    animation: textShimmer 1100ms ease-out 1;
+  }
+  .sugg-header-sparkle :global(svg) {
+    animation: iconWiggle 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+  }
+  .sugg-caret {
+    display: inline-flex;
+    color: var(--text-3);
+    transition: transform 220ms cubic-bezier(0.34, 1.2, 0.64, 1);
+    margin-left: 2px;
+  }
+  .sugg-caret-open { transform: rotate(180deg); }
+
+  /* Collapsible body using the grid-rows trick */
+  .sugg-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 260ms cubic-bezier(0.34, 1.2, 0.64, 1),
+                opacity 200ms ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sugg-body-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* 2-row wrap grid — no scroll. Card height + max-height ensure that any
+     card flowing onto a 3rd row is fully clipped (never partially visible). */
+  .sugg-grid {
+    --sc-h: 50px;
+    --sc-row-gap: 6px;
+    --sc-pt: 10px;
+    --sc-pb: 6px;
+    min-height: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: var(--sc-row-gap);
+    padding: var(--sc-pt) 2px var(--sc-pb);
+    box-sizing: border-box;
+    max-height: calc(2 * var(--sc-h) + var(--sc-row-gap) + var(--sc-pt) + var(--sc-pb));
+    overflow: hidden;
+    transition: max-height 220ms cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
+  /* Collapse to a single row when row 2 would only contain ≤2 items */
+  .sugg-grid-single-row {
+    max-height: calc(var(--sc-h) + var(--sc-pt) + var(--sc-pb));
+  }
+  /* During an active drag: freeze any height/transition motion and let cards
+     escape the clip box, so the dragged element doesn't visually fight the
+     grid's reflow + max-height transition. */
+  .sugg-grid-dragging {
+    transition: none;
+    overflow: visible;
+  }
+
+  @keyframes suggIconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.18); }
+  }
+  @keyframes iconSparkLoop {
+    0%   { transform: scale(0) translateY(0); opacity: 0; }
+    25%  { transform: scale(1.2) translateY(-2px); opacity: 1; }
+    50%  { transform: scale(0.7) translateY(-4px); opacity: 0.4; }
+    70%  { transform: scale(0) translateY(-6px); opacity: 0; }
+    100% { transform: scale(0) translateY(0); opacity: 0; }
+  }
+  @keyframes textShimmer {
+    0% { color: var(--text-3); }
+    40% { color: var(--cal); text-shadow: 0 0 8px var(--cal); }
+    100% { color: var(--text-3); text-shadow: none; }
+  }
+  @keyframes iconWiggle {
+    0%   { transform: rotate(0deg) scale(1); }
+    25%  { transform: rotate(-12deg) scale(1.25); }
+    55%  { transform: rotate(10deg) scale(1.15); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
+
+  /* Compact suggestion card — leaner look with calorie accent on the left */
+  .sugg-card {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 3px;
+    padding: 7px 13px 7px 15px;
+    height: 50px;
+    min-width: 110px;
+    max-width: 200px;
+    box-sizing: border-box;
+    background: transparent;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    color: var(--text-1);
     cursor: grab;
     user-select: none;
     transition: border-color var(--transition-fast), background var(--transition-fast),
-                transform var(--transition-fast), box-shadow var(--transition-fast);
+                color var(--transition-fast), transform var(--transition-fast),
+                box-shadow var(--transition-fast),
+                opacity 160ms ease;
+    flex-shrink: 0;
+    overflow: visible;
+    text-align: left;
   }
-  .food-card-draggable:hover {
-    border-color: var(--border-strong);
+  /* Vertical accent stripe on the left in the calorie macro color */
+  .sugg-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    border-radius: 3px;
+    background: var(--cal);
+    opacity: 0.6;
+    transition: opacity var(--transition-fast), background var(--transition-fast);
+  }
+  .sugg-card:hover {
     background: var(--bg-hover);
+    border-color: var(--border-strong);
+    color: var(--text-0);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.10);
   }
-  .food-card-draggable:active {
-    cursor: grabbing;
-    transform: translateY(0) scale(0.99);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+  .sugg-card:hover::before { opacity: 1; }
+  .sugg-card:active { cursor: grabbing; transform: translateY(0) scale(0.97); }
+
+  /* Cards beyond the visible 2 rows: invisible, non-interactive, but stay in
+     the dnd source list and the DOM so their layout slot exists for measurement. */
+  .sugg-card-overflow {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
   }
+  .sc-name {
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--text-0);
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sc-meta {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    font-size: 11px;
+    line-height: 1.1;
+    color: var(--text-3);
+  }
+  .sc-cal { color: var(--cal); font-weight: 600; font-size: 11.5px; letter-spacing: -0.01em; }
+  .sc-unit { color: var(--text-3); font-size: 9.5px; font-weight: 400; }
+  .sc-sep { opacity: 0.4; padding: 0 1px; }
+  .sc-pro { color: var(--pro); font-weight: 500; font-size: 11px; }
 
-  .fc-grip { color: var(--text-3); opacity: 0.35; flex-shrink: 0; display: flex; transition: opacity var(--transition-fast); }
-  .food-card-draggable:hover .fc-grip { opacity: 0.7; }
-
-  .fc-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-
-  .fc-add {
-    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    width: 24px; height: 24px; border-radius: var(--radius-sm);
-    border: var(--border-width) solid var(--border); background: transparent;
-    color: var(--text-3); cursor: pointer; transition: all var(--transition-fast);
+  /* New-arrival card: persistent border + glow + sheen on entry */
+  .sugg-card-new {
+    border-color: var(--cal);
+    background: linear-gradient(180deg, rgba(227, 189, 131, 0.10), rgba(227, 189, 131, 0.02));
+    box-shadow: 0 0 0 1px rgba(227, 189, 131, 0.18), 0 0 12px rgba(227, 189, 131, 0.18);
+  }
+  .sugg-card-new:hover {
+    border-color: var(--cal);
+    background: linear-gradient(180deg, rgba(227, 189, 131, 0.16), rgba(227, 189, 131, 0.04));
+    box-shadow: 0 0 0 1px rgba(227, 189, 131, 0.28), 0 4px 14px rgba(227, 189, 131, 0.22);
+  }
+  .sugg-card-new::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      110deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.20) 48%,
+      rgba(255, 255, 255, 0.34) 50%,
+      rgba(255, 255, 255, 0.20) 52%,
+      transparent 70%
+    );
+    background-size: 220% 100%;
+    background-position: 150% 0;
+    pointer-events: none;
+    animation: pillSheen 1100ms cubic-bezier(0.4, 0, 0.2, 1) 1;
     opacity: 0;
   }
-  .food-card-draggable:hover .fc-add { opacity: 1; }
-  .fc-add:hover { border-color: var(--text-2); color: var(--text-0); background: var(--bg-active); }
-  .fc-add:active { transform: scale(0.9); }
-
-  .fc-name {
-    font-size: var(--font-xs); color: var(--text-0); font-weight: 500; line-height: 1.3;
-    display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
-    -webkit-box-orient: vertical; overflow: hidden;
+  .sc-new-tag {
+    position: absolute;
+    top: -6px;
+    right: 8px;
+    padding: 1px 5px 1.5px;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    color: var(--bg-0);
+    background: var(--cal);
+    border-radius: var(--radius-full);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+    pointer-events: none;
+    z-index: 2;
   }
-  .fc-macros { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-  .fc-macro { font-size: 10.5px; opacity: 0.7; }
-  .source-empty { text-align: center; font-size: var(--font-xs); color: var(--text-3); padding: var(--space-5); }
 
-  /* ── Shadow items in source (copy pattern) ── */
+  /* Sparkle particles around newly-arrived cards */
+  .sc-spark {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    animation: sparkleTwinkle 900ms ease-out 1;
+  }
+  .sc-spark-1 { top: -4px; left: 18%; background: var(--cal); box-shadow: 0 0 6px var(--cal); animation-delay: 60ms; }
+  .sc-spark-2 { bottom: -3px; right: 18%; background: var(--pro); box-shadow: 0 0 6px var(--pro); animation-delay: 180ms; }
+  .sc-spark-3 { top: 35%; right: -4px; background: var(--carb); box-shadow: 0 0 6px var(--carb); animation-delay: 320ms; }
+
+  @keyframes pillSheen {
+    0% { opacity: 0; background-position: 150% 0; }
+    20% { opacity: 1; }
+    100% { opacity: 0; background-position: -50% 0; }
+  }
+  @keyframes sparkleTwinkle {
+    0% { transform: scale(0) translateY(0); opacity: 0; }
+    40% { transform: scale(1.2) translateY(-3px); opacity: 1; }
+    70% { transform: scale(0.8) translateY(-6px); opacity: 0.6; }
+    100% { transform: scale(0) translateY(-10px); opacity: 0; }
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    position: relative;
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+  }
+  .tab {
+    position: relative;
+    padding: 8px 14px 9px;
+    background: transparent;
+    border: none;
+    font-family: var(--font-sans);
+    font-size: var(--font-xs);
+    font-weight: 500;
+    color: var(--text-3);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 1;
+  }
+  .tab:hover { color: var(--text-1); }
+  .tab-active {
+    color: var(--text-0);
+    box-shadow: inset 0 -2px 0 0 var(--text-1);
+  }
+  .tab-count {
+    font-size: 10px;
+    color: var(--text-3);
+    padding: 1px 7px;
+    background: var(--bg-hover);
+    border-radius: var(--radius-full);
+    font-weight: 500;
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+  .tab-active .tab-count { color: var(--text-1); background: var(--bg-active); }
+
+  /* ── List of rows (calm cards) ── */
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-height: 60px;
+  }
+  .row {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px 10px 14px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    text-align: left;
+    font-family: var(--font-sans);
+    cursor: grab;
+    user-select: none;
+    transition: background var(--transition-fast), transform var(--transition-fast),
+                box-shadow var(--transition-fast);
+  }
+  /* Subtle separator between consecutive rows; hidden when adjacent to hover */
+  .row + .row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 14px;
+    right: 12px;
+    height: 1px;
+    background: var(--border);
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity var(--transition-fast);
+  }
+  .row:hover::before, .row:hover + .row::before { opacity: 0; }
+  /* Calorie-color accent stripe on the left, brightens on hover */
+  .row::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--cal);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+  .row:hover::after { opacity: 0.7; }
+  .row:hover {
+    background: var(--bg-hover);
+    transform: translateX(2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.10);
+  }
+  .row:active {
+    cursor: grabbing;
+    background: var(--bg-active);
+    transform: translateX(2px) scale(0.995);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+  }
+
+  .row-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .row-name {
+    font-size: 13.5px;
+    color: var(--text-0);
+    font-weight: 500;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+  }
+  .row-cal {
+    font-size: 13px;
+    color: var(--cal);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    flex-shrink: 0;
+  }
+  .row-cal-unit { color: var(--text-3); font-weight: 400; font-size: 10px; margin-left: 2px; }
+
+  .row-macros {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-2);
+  }
+  .rm { transition: color var(--transition-fast), font-weight var(--transition-fast); }
+  .rm-sep { color: var(--text-3); opacity: 0.5; }
+  /* Reveal full color on hover */
+  .row:hover .rm[data-k="p"] { color: var(--pro); font-weight: 600; }
+  .row:hover .rm[data-k="c"] { color: var(--carb); font-weight: 600; }
+  .row:hover .rm[data-k="f"] { color: var(--fat); font-weight: 600; }
+
+  .empty {
+    text-align: center;
+    font-size: var(--font-xs);
+    color: var(--text-3);
+    padding: var(--space-6) var(--space-3);
+  }
+
+  /* ── Shadow items in source while dragging (copy pattern) ── */
   .dnd-source :global([data-is-dnd-shadow-item-hint]) {
     opacity: 0.25 !important;
     border-style: dashed !important;
@@ -1108,14 +2211,77 @@
 
   .meal-slot {
     border: var(--border-width) solid var(--border); border-radius: var(--radius-md);
-    padding: var(--space-4) var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    cursor: pointer;
     transition: border-color var(--transition-base), box-shadow var(--transition-base);
   }
+  /* Inner interactive controls keep their own cursor so the pointer doesn't
+     misrepresent text inputs / drag handles / remove buttons. */
+  .meal-slot input,
+  .meal-slot button,
+  .meal-slot .slot-item { cursor: auto; }
+  .meal-slot .si-rm { cursor: pointer; }
+  .meal-slot .slot-item { cursor: grab; }
+  .meal-slot .slot-item:active { cursor: grabbing; }
 
-  .slot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); }
-  .slot-left { display: flex; align-items: baseline; gap: var(--space-2); }
-  .slot-name { font-size: var(--font-base); font-weight: 600; }
-  .slot-count { font-size: 11px; color: var(--text-3); }
+  .slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--space-3);
+    margin-bottom: var(--space-3);
+    box-shadow: inset 0 -1px 0 var(--border);
+  }
+  .slot-left { display: flex; align-items: center; gap: var(--space-3); }
+  .slot-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: var(--text-3);
+    transition: color var(--transition-base);
+  }
+  .slot-icon .ic-outline,
+  .slot-icon .ic-filled {
+    position: absolute;
+    inset: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 200ms ease, transform 240ms cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+  .slot-icon .ic-filled {
+    opacity: 0;
+    transform: scale(0.85);
+    pointer-events: none;
+  }
+  .meal-slot:hover .ic-outline,
+  .slot-active-target .ic-outline {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+  .meal-slot:hover .ic-filled,
+  .slot-active-target .ic-filled {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .slot-name {
+    font-size: var(--font-lg);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text-0);
+    line-height: 1.2;
+  }
+  .slot-count {
+    font-size: 10px;
+    color: var(--text-3);
+    background: var(--bg-hover);
+    padding: 1px 7px;
+    border-radius: var(--radius-full);
+    font-weight: 500;
+  }
   .slot-total { font-size: var(--font-sm); font-weight: 500; }
   .slot-unit { font-size: var(--font-xs); color: var(--text-3); font-weight: 400; }
 
@@ -1141,13 +2307,17 @@
   }
   .slot-active-target {
     border-color: var(--border-strong);
-    box-shadow: 0 0 0 1px var(--accent-subtle);
+    box-shadow: inset 3px 0 0 var(--text-1);
   }
+  .slot-active-target .slot-name { color: var(--text-0); }
+  .slot-active-target .slot-header { box-shadow: inset 0 -1px 0 var(--border-strong); }
 
   .slot-item {
     display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
-    padding: var(--space-3); border: var(--border-width) solid var(--border);
-    border-radius: var(--radius-sm); cursor: grab; transition: all var(--transition-fast);
+    padding: 8px 10px; border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-sm); cursor: grab;
+    transition: background var(--transition-fast), border-color var(--transition-fast),
+                transform var(--transition-fast), box-shadow var(--transition-fast);
   }
   .slot-item:hover {
     background: var(--bg-hover);
@@ -1156,6 +2326,10 @@
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
   }
   .slot-item:active { cursor: grabbing; transform: translateY(0) scale(0.99); }
+  /* Hover reveals macro colors (mockup pattern) */
+  .slot-item:hover .rm[data-k="p"] { color: var(--pro); }
+  .slot-item:hover .rm[data-k="c"] { color: var(--carb); }
+  .slot-item:hover .rm[data-k="f"] { color: var(--fat); }
 
   /* Flash + bounce when item is added (drop or click) */
   .slot-item-flash {
@@ -1179,11 +2353,21 @@
   }
 
   .si-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-  .si-name { font-size: var(--font-sm); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .si-macros { display: flex; gap: var(--space-2); }
-  .si-macro { font-size: 11px; opacity: 0.65; }
+  .si-name {
+    font-size: var(--font-sm); font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    letter-spacing: -0.005em;
+  }
+  .si-macros {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--text-3);
+  }
+  .si-macros .rm { transition: color var(--transition-fast); }
+  .si-macros .rm-sep { color: var(--text-3); opacity: 0.55; }
 
-  .si-controls { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
+  .si-controls { display: flex; align-items: center; gap: var(--space-3); flex-shrink: 0; }
+  .si-cal { font-size: var(--font-xs); color: var(--cal); font-weight: 500; }
+  .si-cal-unit { color: var(--text-3); font-weight: 400; font-size: 10px; }
   .si-qty { display: flex; align-items: center; gap: 2px; }
   .qty-input {
     width: 52px; padding: 3px 6px; font-size: var(--font-xs); background: transparent;
@@ -1211,7 +2395,10 @@
     .source-panel { position: static; max-height: 450px; }
   }
   @media (max-width: 600px) {
-    .card-grid { grid-template-columns: 1fr; }
     .macro-summary { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .search-row { flex-wrap: wrap; }
+    .slot-chip-wrap { order: -1; }
+    .search-wrap { flex: 1 1 100%; order: 1; }
+    .filter-btn { order: 2; }
   }
 </style>

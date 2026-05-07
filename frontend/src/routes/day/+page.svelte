@@ -8,7 +8,7 @@
   import { page } from '$app/stores';
   import { beforeNavigate, goto } from '$app/navigation';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
-  import { formatDate, getPercentage } from '$lib/utils/macros.js';
+  import { formatDate, getPercentage, addDays } from '$lib/utils/macros.js';
   import { X, Sparkles, Search, SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, Bookmark, ArrowLeft, Pencil, Check, Trash2, Undo2, Copy, Sunrise, Sun, Moon, Cookie } from 'lucide-svelte';
   import DateNav from '$lib/components/ui/DateNav.svelte';
   import SaveButton from '$lib/components/ui/SaveButton.svelte';
@@ -799,16 +799,12 @@
 
   function prevDay() {
     if (templateMode) return;
-    const d = new Date(currentDate);
-    d.setDate(d.getDate() - 1);
-    currentDate = formatDate(d);
+    currentDate = addDays(currentDate, -1);
     loadPlan().then(() => { takeSavedSnapshot(); syncSuggestions(); });
   }
   function nextDay() {
     if (templateMode) return;
-    const d = new Date(currentDate);
-    d.setDate(d.getDate() + 1);
-    currentDate = formatDate(d);
+    currentDate = addDays(currentDate, 1);
     loadPlan().then(() => { takeSavedSnapshot(); syncSuggestions(); });
   }
 </script>

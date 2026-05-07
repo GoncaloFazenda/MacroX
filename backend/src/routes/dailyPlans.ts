@@ -30,10 +30,40 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res: Response, n
       return;
     }
 
-    const plan = await DailyPlan.findOne({
+    const dateString = date as string;
+    const dateUTC = new Date(dateString + 'T00:00:00Z');
+
+    // Primary lookup — direct DailyPlan for this date.
+    let plan = await DailyPlan.findOne({
       userId: req.user!.userId,
-      date: new Date(date as string),
+      date: dateUTC,
     });
+
+    // Fallback — if no DailyPlan exists, check whether the matching
+    // WeeklyPlan slot has items. This rescues legacy data created before
+    // the Weekly→Daily sync existed, and protects against edge cases
+    // where the two collections could otherwise drift apart.
+    if (!plan) {
+      const jsDow = dateUTC.getUTCDay();           // Sun=0..Sat=6
+      const dayOfWeek = (jsDow + 6) % 7;            // Mon=0..Sun=6
+      const weekStart = new Date(dateUTC);
+      weekStart.setUTCDate(weekStart.getUTCDate() - dayOfWeek);
+
+      const weekly = await WeeklyPlan.findOne({
+        userId: req.user!.userId,
+        weekStart,
+      });
+      const dayData = weekly?.days?.find((d: any) => d.dayOfWeek === dayOfWeek);
+      if (dayData?.meals?.some((m: any) => m.items?.length)) {
+        // Persist the recovered data so subsequent loads (and any other
+        // route that queries DailyPlan directly) see it without a fallback.
+        plan = await DailyPlan.findOneAndUpdate(
+          { userId: req.user!.userId, date: dateUTC },
+          { userId: req.user!.userId, date: dateUTC, meals: dayData.meals },
+          { upsert: true, new: true }
+        );
+      }
+    }
 
     res.json({ plan: plan || null });
   } catch (error) {
@@ -158,14 +188,50 @@ router.get('/range', authenticate, async (req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    const plans = await DailyPlan.find({
-      userId: req.user!.userId,
-      date: {
-        $gte: new Date(start as string),
-        $lte: new Date(end as string),
-      },
-    }).sort({ date: 1 });
+    const userId = req.user!.userId;
+    const startDate = new Date((start as string) + 'T00:00:00Z');
+    const endDate   = new Date((end   as string) + 'T00:00:00Z');
+    const DAY_MS = 86400000;
 
+    const directPlans = await DailyPlan.find({
+      userId,
+      date: { $gte: startDate, $lte: endDate },
+    });
+
+    const byDateKey = new Map<string, any>(
+      directPlans.map((p) => [p.date.toISOString().split('T')[0], p])
+    );
+
+    // Pull in any WeeklyPlans that could overlap the requested range.
+    // A WeeklyPlan covers [weekStart, weekStart+6], so weekStart can be
+    // up to 6 days before startDate.
+    const weekStartMin = new Date(startDate.getTime() - 6 * DAY_MS);
+    const weeklyPlans = await WeeklyPlan.find({
+      userId,
+      weekStart: { $gte: weekStartMin, $lte: endDate },
+    });
+
+    const recovered: any[] = [];
+    for (let t = startDate.getTime(); t <= endDate.getTime(); t += DAY_MS) {
+      const dateUTC = new Date(t);
+      const dateKey = dateUTC.toISOString().split('T')[0];
+      if (byDateKey.has(dateKey)) continue;
+
+      for (const weekly of weeklyPlans) {
+        const wStart = new Date(weekly.weekStart).getTime();
+        const dayOfWeek = Math.round((t - wStart) / DAY_MS);
+        if (dayOfWeek < 0 || dayOfWeek > 6) continue;
+        const dayData = (weekly.days as any[])?.find((d) => d.dayOfWeek === dayOfWeek);
+        if (dayData?.meals?.some((m: any) => m.items?.length)) {
+          recovered.push({ date: dateUTC, meals: dayData.meals });
+        }
+        break; // each date can only belong to one weekly plan
+      }
+    }
+
+    const plans = [...directPlans, ...recovered].sort(
+      (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
     res.json({ plans });
   } catch (error) {
     next(error);

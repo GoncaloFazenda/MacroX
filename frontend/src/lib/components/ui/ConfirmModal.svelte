@@ -1,5 +1,5 @@
 <script>
-  import { X, AlertTriangle, Info } from 'lucide-svelte';
+  import { X, AlertTriangle } from 'lucide-svelte';
 
   let {
     open = false,
@@ -26,96 +26,67 @@
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div class="modal-overlay" onclick={handleCancel}>
     <div
-      class="modal-content confirm-modal"
-      class:confirm-modal-danger={danger}
+      class="modal-content cm-modal"
       onclick={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
       tabindex="-1"
     >
-      <div class="cm-top">
-        <div class="cm-head">
-          <div class="cm-icon" class:cm-icon-danger={danger}>
-            {#if danger}
-              <AlertTriangle size={15} strokeWidth={1.8} />
-            {:else}
-              <Info size={15} strokeWidth={1.8} />
-            {/if}
-          </div>
-          <div class="cm-text">
-            <h2 class="cm-title">{title}</h2>
-            {#if message}
-              <p class="cm-body">{message}</p>
-            {/if}
-          </div>
+      <header class="cm-head">
+        <div class="cm-head-text">
+          <h2 class="cm-title">{title}</h2>
+          {#if message}
+            <p class="cm-sub">{message}</p>
+          {/if}
         </div>
         <button class="cm-close" onclick={handleCancel} aria-label="Close" type="button">
-          <X size={14} strokeWidth={1.6} />
+          <X size={16} strokeWidth={1.5} />
         </button>
-      </div>
+      </header>
 
       {#if warning}
-        <div class="cm-note" class:cm-note-danger={danger}>
-          <span class="cm-note-dot" aria-hidden="true"></span>
-          <span class="cm-note-text">{warning}</span>
+        <div class="cm-warn" class:cm-warn-danger={danger}>
+          <AlertTriangle size={14} strokeWidth={1.75} />
+          <span>{warning}</span>
         </div>
       {/if}
 
-      <div class="cm-actions">
+      <footer class="cm-foot">
         <button type="button" class="btn btn-ghost" onclick={handleCancel}>{cancelText}</button>
         <button type="button" class="btn {danger ? 'btn-danger' : 'btn-primary'}" onclick={handleConfirm}>{confirmText}</button>
-      </div>
+      </footer>
     </div>
   </div>
 {/if}
 
 <style>
-  .confirm-modal {
+  .cm-modal {
     max-width: 440px;
-    padding: var(--space-6);
+    padding: var(--space-5) var(--space-5) var(--space-4);
   }
-  .cm-top {
+
+  .cm-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--space-3);
+    margin-bottom: var(--space-4);
   }
-  .cm-head {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-3);
+  .cm-head-text {
     flex: 1;
     min-width: 0;
-  }
-  .cm-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-md);
-    background: var(--accent-subtle);
-    color: var(--text-1);
-    flex-shrink: 0;
-  }
-  .cm-icon-danger {
-    background: var(--danger-bg);
-    color: var(--danger);
-  }
-  .cm-text {
-    flex: 1;
-    min-width: 0;
-    padding-top: 4px;
   }
   .cm-title {
-    font-size: var(--font-md);
+    margin: 0;
+    font-size: var(--font-lg);
     font-weight: 600;
     letter-spacing: -0.02em;
     color: var(--text-0);
+    line-height: 1.3;
   }
-  .cm-body {
-    margin-top: var(--space-2);
-    font-size: var(--font-sm);
+  .cm-sub {
+    margin: 4px 0 0;
+    font-size: var(--font-xs);
     color: var(--text-2);
     line-height: 1.55;
   }
@@ -126,65 +97,61 @@
     width: 28px;
     height: 28px;
     padding: 0;
-    border: none;
     background: transparent;
+    border: none;
     color: var(--text-3);
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: color var(--transition-fast), background var(--transition-fast);
     flex-shrink: 0;
   }
-  .cm-close:hover { color: var(--text-0); background: var(--bg-hover); }
+  .cm-close:hover {
+    color: var(--text-0);
+    background: var(--bg-hover);
+  }
 
-  /* Neutral note (default) — subtle accent box, no red */
-  .cm-note {
+  .cm-warn {
     display: flex;
     align-items: flex-start;
-    gap: var(--space-3);
-    margin-top: var(--space-5);
-    padding: var(--space-3) var(--space-4);
-    background: var(--accent-subtle);
+    gap: 8px;
+    padding: 10px var(--space-3);
+    margin-bottom: var(--space-5);
+    background: var(--bg-hover);
+    border: var(--border-width) solid var(--border);
     border-radius: var(--radius-md);
-    font-size: var(--font-sm);
-    color: var(--text-1);
+    font-size: var(--font-xs);
+    color: var(--text-2);
     line-height: 1.5;
   }
-  .cm-note-dot {
-    width: 4px;
-    align-self: stretch;
-    background: var(--text-3);
-    border-radius: var(--radius-full);
+  .cm-warn :global(svg) {
     flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--text-3);
   }
-  .cm-note-text {
-    flex: 1;
+  .cm-warn-danger {
+    background: var(--danger-bg);
+    border-color: rgba(201, 112, 112, 0.2);
     color: var(--text-1);
   }
-
-  /* Danger note — red-tinted */
-  .cm-note-danger {
-    background: color-mix(in srgb, var(--danger-bg) 80%, transparent);
-  }
-  .cm-note-danger .cm-note-dot {
-    background: var(--danger);
+  .cm-warn-danger :global(svg) {
+    color: var(--danger);
   }
 
-  .cm-actions {
+  .cm-foot {
     display: flex;
     justify-content: flex-end;
-    gap: var(--space-3);
-    margin-top: var(--space-6);
+    gap: var(--space-2);
   }
 
   @media (max-width: 640px) {
-    .confirm-modal {
+    .cm-modal {
       width: calc(100% - 24px);
-      padding: var(--space-5);
     }
-    .cm-head { gap: var(--space-3); }
-    .cm-actions {
+    .cm-foot {
       flex-direction: column-reverse;
-      align-items: stretch;
+    }
+    .cm-foot :global(.btn) {
+      width: 100%;
     }
   }
 </style>

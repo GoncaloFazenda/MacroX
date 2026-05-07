@@ -4,12 +4,12 @@
   import { foodStore } from '$lib/stores/foods.js';
   import { mealStore } from '$lib/stores/meals.js';
   import { api } from '$lib/api/client.js';
-  import { getPercentage, formatDate, calculateMacros } from '$lib/utils/macros.js';
+  import { getPercentage, formatDate, calculateMacros, todayDateString } from '$lib/utils/macros.js';
   import { onMount } from 'svelte';
-  import { AlertTriangle, Settings, Check } from 'lucide-svelte';
+  import { AlertTriangle, Settings, Check, X, Flame } from 'lucide-svelte';
   import AnimatedNumber from '$lib/components/ui/AnimatedNumber.svelte';
 
-  let today = formatDate(new Date());
+  let today = todayDateString();
   let mounted = $state(false);
   let loadError = $state('');
 
@@ -29,6 +29,24 @@
   let editingGoals = $state(false);
   let goalForm = $state({ calories: 2000, protein: 150, netCarbs: 100, fat: 65 });
   let goalEnabled = $state({ protein: true, netCarbs: true, fat: true });
+
+  // Live calorie sanity check from the macro values currently entered.
+  const macroKcal = $derived.by(() => {
+    const p = goalEnabled.protein  ? Number(goalForm.protein  || 0) * 4 : 0;
+    const c = goalEnabled.netCarbs ? Number(goalForm.netCarbs || 0) * 4 : 0;
+    const f = goalEnabled.fat      ? Number(goalForm.fat      || 0) * 9 : 0;
+    return { p, c, f, total: p + c + f };
+  });
+  const macroSplit = $derived.by(() => {
+    const t = macroKcal.total;
+    if (t === 0) return { p: 0, c: 0, f: 0 };
+    return {
+      p: Math.round(macroKcal.p / t * 100),
+      c: Math.round(macroKcal.c / t * 100),
+      f: Math.round(macroKcal.f / t * 100),
+    };
+  });
+  const calDelta = $derived(Number(goalForm.calories || 0) - macroKcal.total);
 
   const macros = $derived([
     { key: 'calories', label: 'Calories', value: totals.calories, goal: goals.calories, unit: 'kcal', color: 'var(--cal)', bg: 'var(--cal-bg)', enabled: true, integer: true },
@@ -270,72 +288,95 @@
 
 {#if editingGoals}
   <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
-  <div class="gp-overlay" onclick={() => editingGoals = false}>
+  <div class="modal-overlay" onclick={() => editingGoals = false}>
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
-    <form class="gp" onclick={(e) => e.stopPropagation()} onsubmit={saveGoals}>
-      <div class="gp-header">
-        <h2 class="gp-title">Daily Goals</h2>
-        <p class="gp-desc">Configure your daily macro targets</p>
-      </div>
+    <form class="modal-content gm" onclick={(e) => e.stopPropagation()} onsubmit={saveGoals}>
+      <span class="gm-side-bar" aria-hidden="true"></span>
 
-      <div class="gp-items">
-        <div class="gp-card">
-          <div class="gp-card-head">
-            <span class="gp-dot" style="background: var(--cal)"></span>
-            <span class="gp-name">Calories</span>
-          </div>
-          <div class="gp-card-body">
-            <input type="number" class="gp-input mono" bind:value={goalForm.calories} min="0" />
-            <span class="gp-unit">kcal</span>
-          </div>
-        </div>
+      <div class="gm-content">
+        <button type="button" class="gm-close" aria-label="Close" onclick={() => editingGoals = false}>
+          <X size={14} strokeWidth={1.75} />
+        </button>
 
-        <div class="gp-card" class:gp-card-off={!goalEnabled.protein}>
-          <div class="gp-card-head">
-            <span class="gp-dot" style="background: var(--pro)"></span>
-            <span class="gp-name">Protein</span>
-            <button type="button" class="gp-chip" onclick={() => goalEnabled.protein = !goalEnabled.protein}> {goalEnabled.protein ? 'Tracking' : 'Off'} </button>
+        <header class="gm-head">
+          <span class="gm-eyebrow">Daily Goals</span>
+          <p class="gm-sub">Targets used to scale progress across Overview, Day, and Week.</p>
+        </header>
+
+        <!-- Calorie hero — like the Week Summary card -->
+        <div class="gm-cal-hero">
+          <div class="gm-cal-row">
+            <input
+              type="number"
+              class="gm-cal-input mono"
+              bind:value={goalForm.calories}
+              min="0"
+              aria-label="Daily calorie target"
+            />
+            <span class="gm-cal-unit">kcal</span>
           </div>
-          {#if goalEnabled.protein}
-            <div class="gp-card-body">
-              <input type="number" class="gp-input mono" bind:value={goalForm.protein} min="0" />
-              <span class="gp-unit">g</span>
+          {#if macroKcal.total > 0}
+            <div class="gm-cal-hint">
+              Macros total <span class="mono">{macroKcal.total.toLocaleString()}</span> kcal
+              {#if calDelta > 0}
+                <span class="gm-delta">· <span class="mono">+{calDelta}</span> buffer</span>
+              {:else if calDelta < 0}
+                <span class="gm-delta gm-delta-over">· <span class="mono">{calDelta}</span> over</span>
+              {:else}
+                <span class="gm-delta gm-delta-match">· matches</span>
+              {/if}
             </div>
+          {:else}
+            <div class="gm-cal-hint">Set a daily calorie target</div>
           {/if}
         </div>
 
-        <div class="gp-card" class:gp-card-off={!goalEnabled.netCarbs}>
-          <div class="gp-card-head">
-            <span class="gp-dot" style="background: var(--carb)"></span>
-            <span class="gp-name">Net Carbs</span>
-            <button type="button" class="gp-chip" onclick={() => goalEnabled.netCarbs = !goalEnabled.netCarbs}> {goalEnabled.netCarbs ? 'Tracking' : 'Off'} </button>
-          </div>
-          {#if goalEnabled.netCarbs}
-            <div class="gp-card-body">
-              <input type="number" class="gp-input mono" bind:value={goalForm.netCarbs} min="0" />
-              <span class="gp-unit">g</span>
+        <span class="gm-section-label">Macros</span>
+
+        <div class="gm-macros">
+          {#each [
+            { key: 'protein',  label: 'Protein',   color: 'var(--pro)',  pct: macroSplit.p },
+            { key: 'netCarbs', label: 'Carbs',     color: 'var(--carb)', pct: macroSplit.c },
+            { key: 'fat',      label: 'Fat',       color: 'var(--fat)',  pct: macroSplit.f },
+          ] as m}
+            <div class="gm-macro" class:gm-macro-off={!goalEnabled[m.key]} style="--mc: {m.color}">
+              <div class="gm-macro-row">
+                <span class="gm-name">{m.label}</span>
+
+                {#if goalEnabled[m.key]}
+                  <span class="gm-pct mono">{m.pct}%</span>
+                  <div class="gm-input-wrap">
+                    <input type="number" class="gm-input mono" bind:value={goalForm[m.key]} min="0" />
+                    <span class="gm-unit">g</span>
+                  </div>
+                {:else}
+                  <span class="gm-off-label">Off</span>
+                {/if}
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={goalEnabled[m.key]}
+                  aria-label="{goalEnabled[m.key] ? 'Disable' : 'Enable'} {m.label} tracking"
+                  class="gm-switch"
+                  class:gm-switch-on={goalEnabled[m.key]}
+                  onclick={() => (goalEnabled[m.key] = !goalEnabled[m.key])}
+                >
+                  <span class="gm-switch-knob"></span>
+                </button>
+              </div>
+
+              <div class="gm-bar-wrap">
+                <div class="gm-bar"><div class="gm-bar-fill" style="width: {goalEnabled[m.key] ? m.pct : 0}%"></div></div>
+              </div>
             </div>
-          {/if}
+          {/each}
         </div>
 
-        <div class="gp-card" class:gp-card-off={!goalEnabled.fat}>
-          <div class="gp-card-head">
-            <span class="gp-dot" style="background: var(--fat)"></span>
-            <span class="gp-name">Fat</span>
-            <button type="button" class="gp-chip" onclick={() => goalEnabled.fat = !goalEnabled.fat}> {goalEnabled.fat ? 'Tracking' : 'Off'} </button>
-          </div>
-          {#if goalEnabled.fat}
-            <div class="gp-card-body">
-              <input type="number" class="gp-input mono" bind:value={goalForm.fat} min="0" />
-              <span class="gp-unit">g</span>
-            </div>
-          {/if}
-        </div>
-      </div>
-
-      <div class="gp-foot">
-        <button type="button" class="btn btn-ghost" onclick={() => editingGoals = false}>Cancel</button>
-        <button type="submit" class="btn btn-primary">Save</button>
+        <footer class="gm-foot">
+          <button type="button" class="btn btn-ghost" onclick={() => editingGoals = false}>Cancel</button>
+          <button type="submit" class="btn btn-primary">Save goals</button>
+        </footer>
       </div>
     </form>
   </div>
@@ -408,24 +449,284 @@
   .nav-card:hover { border-color: var(--border-strong); background: var(--bg-2); }
   .nc-label { font-size: var(--font-sm); font-weight: 500; color: var(--text-0); }
   .nc-desc { font-size: var(--font-xs); color: var(--text-2); }
-  .gp-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; animation: fadeIn 150ms ease; }
-  .gp { width: 420px; background: var(--bg-modal); border: var(--border-width) solid var(--border); border-radius: var(--radius-xl); padding: var(--space-8); animation: scaleIn 200ms ease; }
-  .gp-header { margin-bottom: var(--space-6); }
-  .gp-title { font-size: var(--font-xl); font-weight: 600; letter-spacing: -0.025em; }
-  .gp-desc { font-size: var(--font-xs); color: var(--text-2); margin-top: var(--space-1); }
-  .gp-items { display: flex; flex-direction: column; gap: var(--space-3); }
-  .gp-card { border: var(--border-width) solid var(--border); border-radius: var(--radius-md); padding: var(--space-4) var(--space-5); transition: opacity var(--transition-fast); }
-  .gp-card-off { opacity: 0.45; }
-  .gp-card-head { display: flex; align-items: center; gap: var(--space-3); }
-  .gp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .gp-name { font-size: var(--font-sm); font-weight: 500; flex: 1; }
-  .gp-chip { padding: 2px 10px; font-size: var(--font-xs); font-family: var(--font-sans); font-weight: 500; border: var(--border-width) solid var(--border); border-radius: var(--radius-full); background: transparent; color: var(--text-2); cursor: pointer; transition: all var(--transition-fast); letter-spacing: 0.01em; }
-  .gp-chip:hover { border-color: var(--border-strong); color: var(--text-0); }
-  .gp-card-body { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); padding-top: var(--space-3); border-top: var(--border-width) solid var(--border); }
-  .gp-input { flex: 1; padding: var(--space-2) var(--space-3); background: transparent; border: var(--border-width) solid var(--border); border-radius: var(--radius-sm); color: var(--text-0); font-size: var(--font-base); text-align: right; transition: border-color var(--transition-fast); }
-  .gp-input:focus { outline: none; border-color: var(--text-2); }
-  .gp-unit { font-size: var(--font-sm); color: var(--text-3); min-width: 30px; }
-  .gp-foot { display: flex; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-6); }
+  /* ── Goals modal — My Week vibe ── */
+  .gm {
+    max-width: 480px;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    overflow: hidden;
+  }
+  .gm-side-bar {
+    width: 3px;
+    background: linear-gradient(180deg, var(--cal), transparent);
+    flex-shrink: 0;
+  }
+  .gm-content {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    padding: var(--space-5) var(--space-5) var(--space-4) var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .gm-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+  .gm-close:hover { color: var(--text-0); background: var(--bg-hover); }
+
+  .gm-head { display: flex; flex-direction: column; gap: 4px; padding-right: 32px; }
+  .gm-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .gm-sub {
+    margin: 0;
+    font-size: var(--font-xs);
+    color: var(--text-2);
+    line-height: 1.55;
+  }
+
+  /* Calorie hero — mirrors the Week Summary card hero */
+  .gm-cal-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: var(--space-4) var(--space-3);
+    background: var(--bg-hover);
+    border-radius: var(--radius-md);
+  }
+  .gm-cal-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+  }
+  .gm-cal-input {
+    width: 140px;
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px solid var(--border-strong);
+    color: var(--text-0);
+    font-size: var(--font-2xl);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    text-align: center;
+    padding: 4px 0;
+    outline: none;
+    transition: border-color var(--transition-fast);
+    text-shadow: 0 0 18px rgba(212, 165, 116, 0.18);
+  }
+  .gm-cal-input:focus {
+    border-bottom-color: var(--cal);
+  }
+  .gm-cal-input::-webkit-outer-spin-button,
+  .gm-cal-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .gm-cal-input { -moz-appearance: textfield; appearance: textfield; }
+  .gm-cal-unit {
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+  }
+  .gm-cal-hint {
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.005em;
+  }
+  .gm-cal-hint .mono { color: var(--text-2); font-weight: 500; }
+  .gm-delta { color: var(--text-2); margin-left: 2px; }
+  .gm-delta-over { color: var(--danger); }
+  .gm-delta-match { color: var(--carb); }
+
+  /* Section label */
+  .gm-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+
+  /* Macro cards — floating, with glowing progress bar */
+  .gm-macros { display: flex; flex-direction: column; gap: 8px; }
+  .gm-macro {
+    background: var(--bg-1);
+    border-radius: var(--radius-md);
+    padding: 10px var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.08);
+    transition: opacity var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .gm-macro:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22), 0 2px 4px rgba(0, 0, 0, 0.12);
+  }
+  .gm-macro-off { opacity: 0.55; }
+  .gm-macro-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .gm-name {
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--text-0);
+    letter-spacing: -0.015em;
+    flex: 1;
+    min-width: 0;
+  }
+  .gm-pct {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+  .gm-input-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .gm-input {
+    width: 64px;
+    padding: 4px 8px;
+    background: transparent;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--mc);
+    font-size: var(--font-sm);
+    font-weight: 600;
+    text-align: right;
+    font-family: var(--font-mono);
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+  }
+  .gm-input:focus {
+    outline: none;
+    border-color: var(--mc);
+    background: var(--bg-active);
+  }
+  .gm-input::-webkit-outer-spin-button,
+  .gm-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .gm-input { -moz-appearance: textfield; appearance: textfield; }
+  .gm-unit {
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .gm-off-label {
+    flex: 1;
+    text-align: right;
+    font-size: var(--font-xs);
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+  }
+
+  /* Glowing macro bar — matches the Week Summary card bars */
+  .gm-bar-wrap { width: 100%; }
+  .gm-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-hover);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+  .gm-bar-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    background: var(--mc);
+    opacity: 0.92;
+    box-shadow:
+      0 0 4px color-mix(in srgb, var(--mc) 50%, transparent),
+      0 0 8px color-mix(in srgb, var(--mc) 22%, transparent);
+    transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+    animation: gmBarPulse 3.6s ease-in-out infinite;
+    min-width: 0;
+  }
+  @keyframes gmBarPulse {
+    0%, 100% {
+      box-shadow:
+        0 0 3px color-mix(in srgb, var(--mc) 40%, transparent),
+        0 0 6px color-mix(in srgb, var(--mc) 18%, transparent);
+    }
+    50% {
+      box-shadow:
+        0 0 5px color-mix(in srgb, var(--mc) 55%, transparent),
+        0 0 10px color-mix(in srgb, var(--mc) 28%, transparent);
+    }
+  }
+
+  /* Switch — matches the previous design but a touch larger to feel deliberate */
+  .gm-switch {
+    position: relative;
+    display: inline-flex;
+    width: 30px;
+    height: 17px;
+    padding: 0;
+    background: var(--bg-active);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+    flex-shrink: 0;
+  }
+  .gm-switch-knob {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 13px;
+    height: 13px;
+    background: var(--text-3);
+    border-radius: 50%;
+    transition: left var(--transition-fast), background var(--transition-fast);
+  }
+  .gm-switch-on {
+    background: var(--text-0);
+    border-color: var(--text-0);
+  }
+  .gm-switch-on .gm-switch-knob {
+    left: 14px;
+    background: var(--bg-0);
+  }
+
+  /* Footer */
+  .gm-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+
+  @media (max-width: 640px) {
+    .gm-foot { flex-direction: column-reverse; }
+    .gm-foot :global(.btn) { width: 100%; }
+  }
   @media (max-width: 1024px) { .macro-row, .trend-row { grid-template-columns: repeat(2, 1fr); } .nav-row { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 640px) { .macro-row, .trend-row, .nav-row { grid-template-columns: 1fr; } .dash-header { flex-direction: column; align-items: flex-start; gap: var(--space-3); } .dash-name { font-size: var(--font-2xl); } }
 </style>

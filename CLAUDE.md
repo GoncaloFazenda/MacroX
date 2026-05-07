@@ -2,6 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Commit message tracking (READ EVERY TURN)
+
+A running commit-message draft lives at `COMMIT_MESSAGE.md` (gitignored). The user copies from it when ready to commit, then deletes the contents to start a fresh cycle. A Stop hook will block you from ending the turn if you edited code under `backend/src`, `frontend/src`, or `CLAUDE.md` without touching `COMMIT_MESSAGE.md`.
+
+**Rules:**
+1. **At the start of every turn that touches code**, read `COMMIT_MESSAGE.md`. If empty/whitespace-only → start a fresh draft. If it has content → you are continuing an existing cycle; update in place.
+2. **Format**: a single subject line in the project's style (`feat:`, `fix:`, `ui:`, `Improve:`, `refactor:`) under ~70 chars, optionally followed by a blank line and bullet points. Match the tone of recent `git log` commits.
+3. **Two implicit sections** (no headers — just bullets, but track the distinction mentally):
+   - **Added/changed in this cycle**: things you did since the last commit reset.
+   - **Removed**: things the user asked you to delete that *were already committed to the repo* before this cycle started. These matter because the commit must record the removal even though you didn't author the original code.
+4. **Net-zero rule**: if the user undoes something you added *within this cycle*, delete the bullet entirely — no trace. Only record net change.
+5. **Pre-existing removals**: if the user asks you to remove a feature/file that existed before this cycle started (i.e., not in your bullet list), add a "Remove X" bullet — you can confirm it's pre-existing via `git log` / `git status`.
+6. **Length cap**: keep under ~15 bullets. When over, collapse granular bullets into broader ones (e.g., 4 card tweaks → "redesign meal cards") rather than dropping detail entirely. Keep the most impactful items specific.
+7. **No filler**: skip trivial things (typo fixes inside a larger change, lint nits). Subject line should reflect the dominant theme.
+8. **Always update `COMMIT_MESSAGE.md` in the same turn you change code** — the Stop hook will block otherwise.
+
 ## Overview
 MacroX is a premium nutrition tracking and meal planning web application. Full-stack TypeScript monorepo with an Express.js API backend and SvelteKit frontend.
 
@@ -21,7 +37,7 @@ cd frontend && npm run test        # Vitest
 cd frontend && npm run test:watch
 ```
 
-Access points: app → `localhost:5173`, API docs → `localhost:4000/api/docs`, playground → `localhost:5173/playground`
+Access points: app → `localhost:5173`, API docs → `localhost:4000/api/docs`
 
 ## Architecture
 
@@ -68,8 +84,7 @@ macrox/
 │           ├── meals/           # List + /new builder
 │           ├── planner/daily/   # DnD with 4 meal slots (svelte-dnd-action)
 │           ├── planner/weekly/  # 7-day DnD grid
-│           ├── templates/       # Saved meal templates
-│           └── playground/      # 12 automated E2E tests
+│           └── templates/       # Saved meal templates
 ```
 
 ## Tech Stack

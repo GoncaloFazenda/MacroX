@@ -96,6 +96,12 @@
   --danger: #dc9292;
   --danger-bg: rgba(220, 146, 146, 0.08);
 
+  /* Polished metallic title — bright top, muted bottom; dark drop shadow */
+  --title-gradient: linear-gradient(180deg, #ffffff 0%, #ffffff 28%, #ededf2 55%, #c4c4cc 100%);
+  --title-shadow:
+    0 5px 6px rgba(0, 0, 0, 0.28),
+    0 13px 22px rgba(0, 0, 0, 0.18);
+
   color-scheme: dark;
 }
 
@@ -142,6 +148,12 @@
   --danger: #b54545;
   --danger-bg: rgba(181, 69, 69, 0.05);
 
+  /* Polished metallic title in dark ink — same recipe inverted for a light bg */
+  --title-gradient: linear-gradient(180deg, #18181b 0%, #18181b 30%, #3f3f46 70%, #71717a 100%);
+  --title-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.05),
+    0 6px 12px rgba(0, 0, 0, 0.08);
+
   color-scheme: light;
 }
 
@@ -187,6 +199,12 @@
   --success-bg: rgba(58, 155, 122, 0.05);
   --danger: #b54545;
   --danger-bg: rgba(181, 69, 69, 0.05);
+
+  /* Polished metallic title in warm ink to match stone palette */
+  --title-gradient: linear-gradient(180deg, #1c1917 0%, #1c1917 30%, #44403c 70%, #78716c 100%);
+  --title-shadow:
+    0 1px 1px rgba(28, 25, 23, 0.07),
+    0 6px 12px rgba(28, 25, 23, 0.09);
 
   color-scheme: light;
 }
